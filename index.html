@@ -32,6 +32,8 @@
 @keyframes lock-shake{0%,100%{transform:translateX(0)}18%{transform:translateX(-12px)}36%{transform:translateX(11px)}54%{transform:translateX(-9px)}72%{transform:translateX(8px)}90%{transform:translateX(-4px)}}
 @keyframes lock-granted{0%{opacity:0;transform:translateY(8px) scale(.9)}100%{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes lock-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.ai-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);display:inline-block;animation:ai-bounce .9s infinite ease-in-out}
+@keyframes ai-bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-6px);opacity:1}}
 @keyframes welcome-sub{0%{opacity:0;letter-spacing:8px}100%{opacity:1;letter-spacing:4px}}
 @keyframes welcome-name{0%{opacity:0;transform:scale(.82) translateY(18px)}100%{opacity:1;transform:scale(1) translateY(0)}}
 @keyframes welcome-line{0%{width:0;opacity:0}100%{width:80px;opacity:1}}
@@ -672,7 +674,8 @@ function load(){try{const d=JSON.parse(localStorage.getItem(KEY))||{};if(!d.busi
 function save(skipPush){S._ts=Date.now();localStorage.setItem(KEY,JSON.stringify(S));if(!skipPush&&typeof fbPush==='function')fbPush();}
 function _lsave(){localStorage.setItem(KEY,JSON.stringify(S));} // init-only save — bez _ts, bez push
 let S=load(),activeBiz=null,activeTab='overview';
-let calYear=new Date().getFullYear(),calMonth=new Date().getMonth(),calSelDay=null,globalView=false,welcomeView=true,statsView=false,visionView=false,mindsetView=false,journalView=false,reviewView=false;
+let calYear=new Date().getFullYear(),calMonth=new Date().getMonth(),calSelDay=null,globalView=false,welcomeView=true,statsView=false,visionView=false,mindsetView=false,journalView=false,reviewView=false,metaAdsView=false;
+let _maPeriod='month';
 let _wTimer=null;
 function getBiz(id){return S.businesses.find(b=>b.id===id)}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
@@ -692,6 +695,7 @@ const _SVG={
   review:'<path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>',
   global:'<path d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/>',
   biz:'<path d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/>',
+  ads:'<path d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z"/>',
   edit:'<path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/>',
   trash:'<path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>'
 };
@@ -723,9 +727,13 @@ function renderSidebar(){
       ${_ni('linear-gradient(135deg,#eab308,#f59e0b)',_SVG.review,'rgba(234,179,8,.35)')}
       <span class="biz-name" style="${reviewView?'color:var(--text);font-weight:600':''}">Týdenní review</span>
     </div>
-    <div class="personal-item${(!welcomeView&&!statsView&&!visionView&&!mindsetView&&!journalView&&!reviewView&&globalView)?' active':''}" onclick="selGlobal()">
+    <div class="personal-item${metaAdsView?' active':''}" onclick="selMetaAds()">
+      ${_ni('linear-gradient(135deg,#1877f2,#b44fe8)',_SVG.ads,'rgba(24,119,242,.35)')}
+      <span class="biz-name" style="${metaAdsView?'color:var(--text);font-weight:600':''}">Meta Ads</span>
+    </div>
+    <div class="personal-item${(!welcomeView&&!statsView&&!visionView&&!mindsetView&&!journalView&&!reviewView&&!metaAdsView&&globalView)?' active':''}" onclick="selGlobal()">
       ${_ni('linear-gradient(135deg,#6366f1,#4f46e5)',_SVG.global,'rgba(99,102,241,.35)')}
-      <span class="biz-name" style="${(!welcomeView&&!statsView&&!visionView&&!mindsetView&&!journalView&&!reviewView&&globalView)?'color:var(--text);font-weight:600':''}">Osobní přehled</span>
+      <span class="biz-name" style="${(!welcomeView&&!statsView&&!visionView&&!mindsetView&&!journalView&&!reviewView&&!metaAdsView&&globalView)?'color:var(--text);font-weight:600':''}">Osobní přehled</span>
     </div>
   </div>
   <div class="sidebar-sep">Businessy</div>`;
@@ -743,7 +751,7 @@ function renderSidebar(){
   el.innerHTML=personal+bizHTML;
 }
 
-function _resetViews(){welcomeView=false;statsView=false;visionView=false;mindsetView=false;journalView=false;reviewView=false;globalView=false}
+function _resetViews(){welcomeView=false;statsView=false;visionView=false;mindsetView=false;journalView=false;reviewView=false;globalView=false;metaAdsView=false}
 function renderAll(){
   renderSidebar();
   if(welcomeView)renderWelcome();
@@ -753,6 +761,7 @@ function renderAll(){
   else if(journalView)renderJournal();
   else if(reviewView)renderReview();
   else if(globalView)renderGlobal();
+  else if(metaAdsView)renderMetaAds();
   else if(activeBiz)renderMain();
   else renderWelcome();
 }
@@ -764,7 +773,182 @@ function selVisionBoard(){_resetViews();visionView=true;activeBiz=null;renderSid
 function selMindset(){_resetViews();mindsetView=true;activeBiz=null;renderSidebar();renderMindset()}
 function selJournal(){_resetViews();journalView=true;activeBiz=null;renderSidebar();renderJournal()}
 function selReview(){_resetViews();reviewView=true;activeBiz=null;renderSidebar();renderReview()}
+function selMetaAds(){_resetViews();metaAdsView=true;activeBiz=null;renderSidebar();renderMetaAds()}
 function _src(){return globalView?S.global:getBiz(activeBiz)}
+
+// ── AI ASISTENT ───────────────────────────────────────────────
+const _AI_KEY_LS='_geminiApiKey';
+function _aiGetKey(){return localStorage.getItem(_AI_KEY_LS)||'';}
+function _aiSetKey(k){if(k)localStorage.setItem(_AI_KEY_LS,k.trim());else localStorage.removeItem(_AI_KEY_LS);}
+const _MA_TOKEN_LS='_metaToken';
+const _MA_ACCT_LS='_metaAcct';
+
+function _buildAiContext(){
+  const now=new Date(),td=today();
+  const mStart=td.slice(0,7)+'-01';
+  const czk=n=>Math.round(n).toLocaleString('cs-CZ')+' Kč';
+
+  // Businessy
+  const bizLines=(S.businesses||[]).map(b=>{
+    const entries=Object.values(b.daily||{}).filter(d=>d.date>=mStart);
+    const rev=entries.reduce((s,d)=>s+(d.revenue||0),0);
+    const exp=entries.reduce((s,d)=>s+(d.expenses||0),0);
+    return `• ${b.name}: tržby ${czk(rev)}, náklady ${czk(exp)}, zisk ${czk(rev-exp)}`;
+  }).join('\n')||'Žádné businessy';
+
+  // Meta Ads
+  const maDates={from:mStart,to:td};
+  const maLines=(S.metaAds?.campaigns||[]).map(c=>{
+    const s=_maStats(c,maDates);
+    return `• ${c.name} [${c.status}]: útrata ${czk(s.spend)}, tržby ${czk(s.revenue)}, ROAS ${s.roas.toFixed(2)}×, CTR ${s.ctr.toFixed(2)}%, CPC ${czk(s.cpc)}, konverze ${Math.round(s.conversions)}`;
+  }).join('\n')||'Žádné Meta Ads kampaně';
+
+  // Habits (posledních 7 dní)
+  const habLines=(S.global?.habits||[]).map(h=>{
+    const days=Array.from({length:7},(_,i)=>{const d=new Date(td);d.setDate(d.getDate()-i);return d.toISOString().slice(0,10);});
+    const done=days.filter(d=>(h.completedDates||[]).includes(d)).length;
+    return `• ${h.name}: ${done}/7 dní splněno`;
+  }).join('\n')||'Žádné habits';
+
+  // Deník (poslední 3)
+  const jrnLines=(S.journal||[]).slice(-3).map(j=>`• ${j.date}: "${j.title||'bez názvu'}" (nálada ${j.rating||'?'}/5)`).join('\n')||'Žádné záznamy';
+
+  // Týdenní review
+  const lastRev=(S.weeklyReviews||[]).slice(-1)[0];
+  const revLine=lastRev?`Poslední review (${lastRev.date}): co šlo dobře: "${lastRev.wins||''}"; co zlepšit: "${lastRev.improve||''}"`:'Žádný týdenní review';
+
+  return `Dnešní datum: ${td}
+
+=== BUSINESSY (tento měsíc) ===
+${bizLines}
+
+=== META ADS (tento měsíc) ===
+${maLines}
+
+=== HABITS (posledních 7 dní) ===
+${habLines}
+
+=== DENÍK (poslední záznamy) ===
+${jrnLines}
+
+=== TÝDENNÍ REVIEW ===
+${revLine}`;
+}
+
+const _AI_SYS=`Jsi osobní business asistent Mistra Vorla. Analyzuješ jeho reálná data z business dashboardu a daváš mu konkrétní, akční doporučení.
+
+Pravidla:
+- Mluv česky, přátelsky ale věcně
+- Buď konkrétní — cituj čísla z dat
+- Prioritizuj — nejdůležitější věci první
+- Krátce a jasně — žádné zbytečné omáčky
+- Pokud vidíš problém (nízký ROAS, klesající tržby, slabé habits), pojmenuj ho a navrhni řešení
+- Pokud je vše v pořádku, pochval a navrhni jak ještě zlepšit
+- Formátuj odpověď přehledně (emoji na začátku řádku pomáhají)`;
+
+async function _callGemini(userMsg){
+  const key=_aiGetKey();
+  if(!key)throw new Error('NO_KEY');
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
+  const body={
+    system_instruction:{parts:[{text:_AI_SYS}]},
+    contents:[{role:'user',parts:[{text:userMsg}]}],
+    generationConfig:{temperature:.7,maxOutputTokens:20000}
+  };
+  const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
+  const d=await r.json();
+  return d.candidates?.[0]?.content?.parts?.[0]?.text||'Bez odpovědi.';
+}
+
+let _aiMsgs=[];
+
+async function aiAnalyze(){
+  const key=_aiGetKey();
+  if(!key){openAiSetup();return;}
+  _aiAddMsg('Analyzuji tvoje data…','bot','loading');
+  try{
+    const ctx=_buildAiContext();
+    const reply=await _callGemini(`Tady jsou moje aktuální data:\n\n${ctx}\n\nProsím analyzuj je a řekni mi co dělat lépe. Zaměř se na nejdůležitější věci.`);
+    _aiRemoveLoading();
+    _aiAddMsg(reply,'bot');
+  }catch(e){
+    _aiRemoveLoading();
+    if(e.message==='NO_KEY')_aiAddMsg('Nejdřív nastav API klíč — klikni na ⚙️','bot');
+    else _aiAddMsg('Chyba: '+e.message,'bot');
+  }
+}
+
+async function aiAsk(){
+  const inp=document.getElementById('aiChatInput');
+  const msg=(inp?.value||'').trim();
+  if(!msg)return;
+  inp.value='';
+  const key=_aiGetKey();
+  if(!key){openAiSetup();return;}
+  _aiAddMsg(msg,'user');
+  _aiAddMsg('Přemýšlím…','bot','loading');
+  try{
+    const ctx=_buildAiContext();
+    const reply=await _callGemini(`Kontext mých dat:\n${ctx}\n\nMoje otázka: ${msg}`);
+    _aiRemoveLoading();
+    _aiAddMsg(reply,'bot');
+  }catch(e){
+    _aiRemoveLoading();
+    _aiAddMsg('Chyba: '+e.message,'bot');
+  }
+}
+
+function _aiAddMsg(text,role,cls){
+  _aiMsgs.push({text,role,cls});
+  _aiRenderMsgs();
+}
+function _aiRemoveLoading(){
+  _aiMsgs=_aiMsgs.filter(m=>m.cls!=='loading');
+  _aiRenderMsgs();
+}
+function _aiRenderMsgs(){
+  const el=document.getElementById('aiMsgList');
+  if(!el)return;
+  el.innerHTML=_aiMsgs.map(m=>{
+    const isBot=m.role==='bot';
+    const isLoading=m.cls==='loading';
+    const text=isLoading
+      ?'<span style="display:inline-flex;gap:4px;align-items:center"><span class="ai-dot"></span><span class="ai-dot" style="animation-delay:.2s"></span><span class="ai-dot" style="animation-delay:.4s"></span></span>'
+      :m.text
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/^###\s+(.+)$/gm,'<div style="font-size:13px;font-weight:800;color:var(--accent);margin:10px 0 4px">$1</div>')
+        .replace(/^##\s+(.+)$/gm,'<div style="font-size:14px;font-weight:800;margin:10px 0 4px">$1</div>')
+        .replace(/^#\s+(.+)$/gm,'<div style="font-size:15px;font-weight:800;margin:10px 0 4px">$1</div>')
+        .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g,'<em>$1</em>')
+        .replace(/^[\*\-]\s+(.+)$/gm,'<div style="padding-left:12px;margin:2px 0">• $1</div>')
+        .replace(/\n/g,'<br>');
+    return `<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;${isBot?'':'flex-direction:row-reverse'}">
+      ${isBot?`<div style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#1877f2,#b44fe8);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">🤖</div>`:''}
+      <div style="max-width:85%;background:${isBot?'var(--surface2)':'linear-gradient(135deg,#7c3aed,#4f46e5)'};border-radius:${isBot?'4px 14px 14px 14px':'14px 4px 14px 14px'};padding:12px 16px;font-size:13.5px;line-height:1.6;color:var(--text)">${text}</div>
+    </div>`;
+  }).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+function openAiSetup(){
+  const cur=_aiGetKey();
+  showModal(`
+    <h3 class="modal-title">🤖 AI Asistent — nastavení</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px">Potřebuješ API klíč od Google Gemini.<br>Získej ho na <strong>aistudio.google.com</strong> → Get API key.</p>
+    <div class="fg">
+      <label>Gemini API klíč</label>
+      <input class="fc" id="aiKeyInput" type="password" placeholder="AIza..." value="${cur}" style="font-family:monospace;letter-spacing:.5px">
+    </div>
+    <p style="font-size:11px;color:var(--muted2);margin-bottom:20px">Klíč je uložen pouze lokálně v prohlížeči — nikdy se nesynchronizuje do Firebase.</p>
+    <div class="m-acts">
+      ${cur?`<button class="btn btn-sm" style="background:var(--red-dim);color:var(--red)" onclick="_aiSetKey('');closeModal();renderGlobal()">Odebrat klíč</button>`:''}
+      <button class="btn btn-ghost" onclick="closeModal()">Zrušit</button>
+      <button class="btn btn-primary" onclick="_aiSetKey(document.getElementById('aiKeyInput').value);closeModal();renderGlobal()">Uložit</button>
+    </div>
+  `);
+}
 
 function renderGlobal(){
   const el=document.getElementById('mainContent');
@@ -772,16 +956,45 @@ function renderGlobal(){
   const td=today();
   const doneH=(g.habits||[]).filter(h=>(h.completedDates||[]).includes(td)).length;
   const dayT=(g.dailyTasks||[]).filter(t=>t.date===td);
+  const hasKey=!!_aiGetKey();
+
   el.innerHTML=`
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:26px;padding-bottom:22px;border-bottom:1px solid var(--border)">
       <div style="width:44px;height:44px;border-radius:12px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📋</div>
-      <div>
+      <div style="flex:1">
         <h1 style="font-size:21px;font-weight:800;letter-spacing:-.5px">Osobní přehled</h1>
         <div style="font-size:13px;color:var(--muted);margin-top:2px">${td} &nbsp;·&nbsp; ${doneH}/${(g.habits||[]).length} habits &nbsp;·&nbsp; ${dayT.filter(t=>t.done).length}/${dayT.length} úkolů</div>
       </div>
     </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:18px;overflow:hidden;margin-bottom:28px">
+      <div style="padding:18px 20px 14px;background:linear-gradient(135deg,rgba(24,119,242,.12),rgba(180,79,232,.08));border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#1877f2,#b44fe8);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🤖</div>
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:700">AI Asistent</div>
+          <div style="font-size:11px;color:var(--muted)">Analyzuje tvoje data a radí co zlepšit</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm" style="background:var(--surface3);color:var(--text);font-size:12px" onclick="openAiSetup()">⚙️ ${hasKey?'API klíč':'Nastavit'}</button>
+          ${hasKey?`<button class="btn btn-primary btn-sm" onclick="aiAnalyze()">⚡ Analyzovat</button>`:''}
+        </div>
+      </div>
+      <div id="aiMsgList" style="padding:16px 20px;min-height:60px;max-height:480px;overflow-y:auto">
+        ${_aiMsgs.length?'':hasKey
+          ?`<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">Klikni na <strong>⚡ Analyzovat</strong> pro analýzu dat, nebo se zeptej níže.</div>`
+          :`<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">Nastav Gemini API klíč pro aktivaci AI asistenta.<br><span style="font-size:12px;color:var(--muted2)">Zdarma na aistudio.google.com</span></div>`
+        }
+      </div>
+      ${hasKey?`<div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:10px">
+        <input id="aiChatInput" class="finput" placeholder="Zeptej se asistenta…" style="flex:1;margin:0;border-radius:10px;padding:10px 14px;font-size:13px" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiAsk()}">
+        <button class="btn btn-primary btn-sm" onclick="aiAsk()">Odeslat</button>
+      </div>`:''}
+    </div>
+
     ${tabCalendar(g)}
     <div style="margin-top:8px">${tabDaily(g)}</div>`;
+
+  if(_aiMsgs.length)_aiRenderMsgs();
 }
 function delBiz(id){
   if(!confirm('Smazat tento business a všechna data?'))return;
@@ -2710,6 +2923,369 @@ async function fbPush(){
     fbSetStatus('ok');
   }catch(e){fbSetStatus('err');}
   setTimeout(()=>{_fbPushing=false;},400);
+}
+
+// ── META ADS ──────────────────────────────────────────────────
+function initMetaAds(){if(!S.metaAds)S.metaAds={campaigns:[]};if(!S.metaAds.campaigns)S.metaAds.campaigns=[];}
+
+function _maDates(){
+  const now=new Date(),td=now.toISOString().split('T')[0];
+  if(_maPeriod==='week'){const d=new Date(now);d.setDate(d.getDate()-d.getDay()+1);return{from:d.toISOString().split('T')[0],to:td};}
+  if(_maPeriod==='month'){return{from:td.slice(0,7)+'-01',to:td};}
+  if(_maPeriod==='last30'){const d=new Date(now);d.setDate(d.getDate()-30);return{from:d.toISOString().split('T')[0],to:td};}
+  return{from:'2000-01-01',to:td};
+}
+
+function _maStats(c,dates){
+  const en=(c.entries||[]).filter(e=>e.date>=dates.from&&e.date<=dates.to);
+  const spend=en.reduce((s,e)=>s+(e.spend||0),0);
+  const revenue=en.reduce((s,e)=>s+(e.revenue||0),0);
+  const impressions=en.reduce((s,e)=>s+(e.impressions||0),0);
+  const clicks=en.reduce((s,e)=>s+(e.clicks||0),0);
+  const conversions=en.reduce((s,e)=>s+(e.conversions||0),0);
+  return{spend,revenue,impressions,clicks,conversions,
+    roas:spend?revenue/spend:0,
+    ctr:impressions?clicks/impressions*100:0,
+    cpc:clicks?spend/clicks:0,
+    cpa:conversions?spend/conversions:0};
+}
+
+function renderMetaAds(){
+  initMetaAds();
+  const main=document.getElementById('mainContent');
+  if(!main)return;
+  const dates=_maDates();
+  const all=S.metaAds.campaigns;
+  const tot=all.reduce((a,c)=>{const s=_maStats(c,dates);a.spend+=s.spend;a.revenue+=s.revenue;a.impressions+=s.impressions;a.clicks+=s.clicks;a.conversions+=s.conversions;return a;},{spend:0,revenue:0,impressions:0,clicks:0,conversions:0});
+  const tRoas=tot.spend?tot.revenue/tot.spend:0;
+  const tCtr=tot.impressions?tot.clicks/tot.impressions*100:0;
+  const tCpc=tot.clicks?tot.spend/tot.clicks:0;
+  const tCpa=tot.conversions?tot.spend/tot.conversions:0;
+
+  const czk=n=>Math.round(n).toLocaleString('cs-CZ')+' Kč';
+  const num=n=>Math.round(n).toLocaleString('cs-CZ');
+  const pct=n=>n.toFixed(2)+'%';
+  const xr=n=>n.toFixed(2)+'×';
+  const roasColor=r=>r>=3?'var(--green)':r>=1?'var(--yellow)':'var(--red)';
+
+  const periodDef=[['week','Tento týden'],['month','Tento měsíc'],['last30','Posledních 30 dní'],['all','Vše']];
+  const tabs=periodDef.map(([k,l])=>`<button class="tab${_maPeriod===k?' active':''}" onclick="_maPeriod='${k}';renderMetaAds()">${l}</button>`).join('');
+
+  const kpis=[
+    {l:'Útrata',v:czk(tot.spend),c:'var(--red)'},
+    {l:'Tržby',v:czk(tot.revenue),c:'var(--green)'},
+    {l:'ROAS',v:xr(tRoas),c:roasColor(tRoas)},
+    {l:'Kliknutí',v:num(tot.clicks),c:'#818cf8'},
+    {l:'CTR',v:pct(tCtr),c:'#06b6d4'},
+    {l:'CPC',v:czk(tCpc),c:'#f97316'},
+    {l:'Konverze',v:num(tot.conversions),c:'var(--yellow)'},
+    {l:'CPA',v:tot.conversions?czk(tCpa):'—',c:'#94a3b8'},
+  ].map(k=>`<div class="stat-card" style="border-top:2px solid ${k.c}"><div class="stat-label" style="margin-bottom:6px">${k.l}</div><div style="font-size:22px;font-weight:800;color:${k.c};letter-spacing:-.5px">${k.v}</div></div>`).join('');
+
+  const statusC={active:'#34d399',paused:'#fbbf24',ended:'#64748b'};
+  const statusL={active:'Aktivní',paused:'Pozastaveno',ended:'Ukončeno'};
+  const objL={traffic:'Návštěvnost',conversions:'Konverze',leads:'Leady',awareness:'Povědomí'};
+
+  const campaigns=all.length?all.map(c=>{
+    const s=_maStats(c,dates);
+    const col=c.color||'#7c3aed';
+    const mini=[
+      {l:'Útrata',v:czk(s.spend),c:'var(--red)'},
+      {l:'Tržby',v:czk(s.revenue),c:'var(--green)'},
+      {l:'ROAS',v:xr(s.roas),c:roasColor(s.roas)},
+      {l:'CTR',v:pct(s.ctr),c:'#06b6d4'},
+      {l:'CPC',v:czk(s.cpc),c:'#818cf8'},
+      {l:'Konverze',v:num(s.conversions),c:'var(--yellow)'},
+    ].map(m=>`<div style="background:var(--surface3);border-radius:10px;padding:11px 14px;min-width:100px"><div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin-bottom:4px">${m.l}</div><div style="font-size:16px;font-weight:800;color:${m.c}">${m.v}</div></div>`).join('');
+    const last=c.entries&&c.entries.length?`<span style="font-size:11px;color:var(--muted2)">Celkem ${c.entries.length} záznamů · poslední: ${c.entries[c.entries.length-1].date}</span>`:`<span style="font-size:11px;color:var(--muted2);font-style:italic">Zatím žádná data</span>`;
+    return `<div class="card" style="margin-bottom:14px;border-left:3px solid ${col}">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <div style="font-size:16px;font-weight:700;margin-bottom:6px">${esc(c.name)}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:${statusC[c.status]||'#64748b'}22;color:${statusC[c.status]||'#64748b'}">${statusL[c.status]||c.status}</span>
+            <span style="font-size:11px;color:var(--muted);padding:3px 9px;background:var(--surface3);border-radius:20px;font-weight:500">${objL[c.objective]||c.objective||''}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="openMaAddEntry('${c.id}')">+ Přidat data</button>
+          <button class="btn btn-sm" style="background:var(--surface3);color:var(--text)" onclick="openMaEditCampaign('${c.id}')">✏️ Upravit</button>
+          <button class="btn btn-sm" style="background:var(--red-dim);color:var(--red)" onclick="delMaCampaign('${c.id}')">Smazat</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">${mini}</div>
+      <div>${last}</div>
+    </div>`;
+  }).join(''):`<div style="text-align:center;padding:60px 20px">
+    <div style="font-size:52px;margin-bottom:16px">📣</div>
+    <div style="font-size:17px;font-weight:700;margin-bottom:8px">Žádné kampaně</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:24px">Přidej svoji první Meta Ads kampaň</div>
+    <button class="btn btn-primary" onclick="openMaAddCampaign()">+ Přidat kampaň</button>
+  </div>`;
+
+  const hasSetup=!!(localStorage.getItem(_MA_TOKEN_LS)&&localStorage.getItem(_MA_ACCT_LS));
+  main.innerHTML=`<div style="padding:28px 32px;max-width:960px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:12px">
+      <div>
+        <h1 style="font-size:24px;font-weight:800;letter-spacing:-.6px;background:linear-gradient(135deg,#1877f2,#b44fe8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Meta Ads Performance</h1>
+        <p style="font-size:13px;color:var(--muted);margin-top:3px">Facebook & Instagram kampaně</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button id="maSyncBtn" class="btn btn-primary" onclick="syncMetaAdsAPI()" style="background:linear-gradient(135deg,#1877f2,#b44fe8);gap:6px">🔄 Synchronizovat</button>
+        <button class="btn btn-sm" style="background:var(--surface3);color:${hasSetup?'#34d399':'var(--red)'}" onclick="openMetaSetup()" title="${hasSetup?'API připojeno':'API není nastaveno'}">⚙️ ${hasSetup?'API':'Nastavit API'}</button>
+        ${all.length?`<button class="btn btn-primary" onclick="openMaAddCampaign()">+ Přidat kampaň</button>`:''}
+      </div>
+    </div>
+    <div class="tabs" style="margin-bottom:20px">${tabs}</div>
+    <div class="stat-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:28px">${kpis}</div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted2);margin-bottom:12px">Kampaně</div>
+    ${campaigns}
+  </div>`;
+}
+
+function openMaAddCampaign(){
+  const colors=['#1877f2','#7c3aed','#34d399','#f97316','#ec4899','#06b6d4','#eab308','#f87171'];
+  const colorOpts=colors.map(c=>`<label style="cursor:pointer"><input type="radio" name="maColor" value="${c}" style="display:none"><div style="width:28px;height:28px;border-radius:8px;background:${c};transition:transform .15s" onclick="this.parentElement.querySelectorAll('div').forEach(d=>d.style.outline='');this.style.outline='3px solid #fff'"></div></label>`).join('');
+  document.getElementById('modals').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal">
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:20px">Nová kampaň</h3>
+    <div class="frow">
+      <label class="flabel">Název kampaně</label>
+      <input class="finput" id="maCampName" placeholder="např. Léto 2026 — Konverze">
+    </div>
+    <div class="frow" style="margin-top:14px">
+      <label class="flabel">Cíl kampaně</label>
+      <select class="finput" id="maCampObj">
+        <option value="conversions">Konverze</option>
+        <option value="traffic">Návštěvnost</option>
+        <option value="leads">Leady</option>
+        <option value="awareness">Povědomí</option>
+      </select>
+    </div>
+    <div class="frow" style="margin-top:14px">
+      <label class="flabel">Status</label>
+      <select class="finput" id="maCampStatus">
+        <option value="active">Aktivní</option>
+        <option value="paused">Pozastaveno</option>
+        <option value="ended">Ukončeno</option>
+      </select>
+    </div>
+    <div style="margin-top:14px">
+      <label class="flabel">Barva</label>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${colorOpts}</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:24px;justify-content:flex-end">
+      <button class="btn btn-sm" style="background:var(--surface3);color:var(--text)" onclick="closeModal()">Zrušit</button>
+      <button class="btn btn-primary" onclick="saveMaCampaign()">Uložit kampaň</button>
+    </div>
+  </div></div>`;
+}
+
+function openMaEditCampaign(id){
+  initMetaAds();
+  const c=S.metaAds.campaigns.find(x=>x.id===id);
+  if(!c)return;
+  const colors=['#1877f2','#7c3aed','#34d399','#f97316','#ec4899','#06b6d4','#eab308','#f87171'];
+  const colorOpts=colors.map(col=>`<label style="cursor:pointer"><input type="radio" name="maColor" value="${col}" style="display:none"><div style="width:28px;height:28px;border-radius:8px;background:${col};transition:transform .15s;${c.color===col?'outline:3px solid #fff':''}" onclick="this.parentElement.querySelectorAll('div').forEach(d=>d.style.outline='');this.style.outline='3px solid #fff'"></div></label>`).join('');
+  document.getElementById('modals').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal">
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:20px">Upravit kampaň</h3>
+    <input type="hidden" id="maCampId" value="${id}">
+    <div class="frow">
+      <label class="flabel">Název kampaně</label>
+      <input class="finput" id="maCampName" value="${esc(c.name)}">
+    </div>
+    <div class="frow" style="margin-top:14px">
+      <label class="flabel">Cíl kampaně</label>
+      <select class="finput" id="maCampObj">
+        ${['conversions','traffic','leads','awareness'].map(o=>`<option value="${o}"${c.objective===o?' selected':''}>${{conversions:'Konverze',traffic:'Návštěvnost',leads:'Leady',awareness:'Povědomí'}[o]}</option>`).join('')}
+      </select>
+    </div>
+    <div class="frow" style="margin-top:14px">
+      <label class="flabel">Status</label>
+      <select class="finput" id="maCampStatus">
+        ${['active','paused','ended'].map(s=>`<option value="${s}"${c.status===s?' selected':''}>${{active:'Aktivní',paused:'Pozastaveno',ended:'Ukončeno'}[s]}</option>`).join('')}
+      </select>
+    </div>
+    <div style="margin-top:14px">
+      <label class="flabel">Barva</label>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${colorOpts}</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:24px;justify-content:flex-end">
+      <button class="btn btn-sm" style="background:var(--surface3);color:var(--text)" onclick="closeModal()">Zrušit</button>
+      <button class="btn btn-primary" onclick="saveMaCampaign()">Uložit změny</button>
+    </div>
+  </div></div>`;
+}
+
+function saveMaCampaign(){
+  initMetaAds();
+  const name=document.getElementById('maCampName').value.trim();
+  if(!name)return;
+  const id=document.getElementById('maCampId')?.value;
+  const obj=document.getElementById('maCampObj').value;
+  const status=document.getElementById('maCampStatus').value;
+  const checkedColor=document.querySelector('input[name="maColor"]:checked');
+  const selectedDiv=document.querySelector('[name="maColor"]')?.closest('div')?.querySelector('div[style*="outline: 3px"]');
+  const color=checkedColor?checkedColor.value:(document.querySelector('.modal [style*="outline:3px solid"]')?.style.background||'#1877f2');
+  if(id){
+    const c=S.metaAds.campaigns.find(x=>x.id===id);
+    if(c){c.name=name;c.objective=obj;c.status=status;c.color=color;}
+  }else{
+    S.metaAds.campaigns.push({id:'ma_'+Date.now(),name,objective:obj,status,color,entries:[]});
+  }
+  save();closeModal();renderMetaAds();
+}
+
+function delMaCampaign(id){
+  if(!confirm('Smazat kampaň a všechna její data?'))return;
+  initMetaAds();
+  S.metaAds.campaigns=S.metaAds.campaigns.filter(c=>c.id!==id);
+  save();renderMetaAds();
+}
+
+function openMaAddEntry(campId){
+  initMetaAds();
+  const c=S.metaAds.campaigns.find(x=>x.id===campId);
+  if(!c)return;
+  const td=new Date().toISOString().split('T')[0];
+  document.getElementById('modals').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal">
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:4px">Přidat data</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px">${esc(c.name)}</p>
+    <input type="hidden" id="maEntryCampId" value="${campId}">
+    <div class="frow" style="grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <label class="flabel">Datum</label>
+        <input class="finput" type="date" id="maEntryDate" value="${td}">
+      </div>
+      <div>
+        <label class="flabel">Útrata (Kč)</label>
+        <input class="finput" type="number" id="maEntrySpend" placeholder="0" min="0">
+      </div>
+    </div>
+    <div class="frow" style="grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+      <div>
+        <label class="flabel">Zobrazení</label>
+        <input class="finput" type="number" id="maEntryImpr" placeholder="0" min="0">
+      </div>
+      <div>
+        <label class="flabel">Kliknutí</label>
+        <input class="finput" type="number" id="maEntryClicks" placeholder="0" min="0">
+      </div>
+    </div>
+    <div class="frow" style="grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+      <div>
+        <label class="flabel">Konverze</label>
+        <input class="finput" type="number" id="maEntryConv" placeholder="0" min="0">
+      </div>
+      <div>
+        <label class="flabel">Tržby (Kč)</label>
+        <input class="finput" type="number" id="maEntryRevenue" placeholder="0" min="0">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:24px;justify-content:flex-end">
+      <button class="btn btn-sm" style="background:var(--surface3);color:var(--text)" onclick="closeModal()">Zrušit</button>
+      <button class="btn btn-primary" onclick="saveMaEntry()">Uložit</button>
+    </div>
+  </div></div>`;
+}
+
+function saveMaEntry(){
+  initMetaAds();
+  const campId=document.getElementById('maEntryCampId').value;
+  const c=S.metaAds.campaigns.find(x=>x.id===campId);
+  if(!c)return;
+  const date=document.getElementById('maEntryDate').value;
+  if(!date)return;
+  const entry={
+    date,
+    spend:parseFloat(document.getElementById('maEntrySpend').value)||0,
+    impressions:parseInt(document.getElementById('maEntryImpr').value)||0,
+    clicks:parseInt(document.getElementById('maEntryClicks').value)||0,
+    conversions:parseInt(document.getElementById('maEntryConv').value)||0,
+    revenue:parseFloat(document.getElementById('maEntryRevenue').value)||0,
+  };
+  const existing=c.entries.findIndex(e=>e.date===date);
+  if(existing>=0)c.entries[existing]=entry;
+  else{c.entries.push(entry);c.entries.sort((a,b)=>a.date<b.date?-1:1);}
+  save();closeModal();renderMetaAds();
+}
+
+function openMetaSetup(){
+  const tok=localStorage.getItem(_MA_TOKEN_LS)||'';
+  const acct=localStorage.getItem(_MA_ACCT_LS)||'';
+  showModal(`
+    <h3 class="modal-title">Připojení Meta Ads API</h3>
+    <div class="fg">
+      <label>Access Token</label>
+      <input class="fc" id="maApiToken" value="${esc(tok)}" placeholder="EAAxxxxx..." style="font-family:monospace;font-size:11px">
+    </div>
+    <div class="fg">
+      <label>Ad Account ID</label>
+      <input class="fc" id="maApiAcct" value="${esc(acct)}" placeholder="1248820154115548">
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:4px;margin-bottom:20px">Token se ukládá pouze lokálně v prohlížeči, nikdy se neposílá do Firebase.</p>
+    <div class="m-acts">
+      <button class="btn btn-ghost" onclick="closeModal()">Zrušit</button>
+      <button class="btn btn-primary" onclick="saveMetaSetup()">Uložit</button>
+    </div>
+  `);
+}
+
+function saveMetaSetup(){
+  const tok=document.getElementById('maApiToken').value.trim();
+  const acct=document.getElementById('maApiAcct').value.trim().replace(/^act_/,'');
+  if(!tok||!acct){alert('Vyplň token i Ad Account ID.');return;}
+  localStorage.setItem(_MA_TOKEN_LS,tok);
+  localStorage.setItem(_MA_ACCT_LS,acct);
+  closeModal();renderMetaAds();
+}
+
+async function syncMetaAdsAPI(){
+  const tok=localStorage.getItem(_MA_TOKEN_LS);
+  const acct=localStorage.getItem(_MA_ACCT_LS);
+  if(!tok||!acct){openMetaSetup();return;}
+  const base='https://graph.facebook.com/v19.0';
+  const btn=document.getElementById('maSyncBtn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Synchronizace...';}
+  try{
+    const campRes=await fetch(`${base}/act_${acct}/campaigns?fields=id,name,status,objective&limit=50&access_token=${tok}`);
+    const campData=await campRes.json();
+    if(campData.error)throw new Error(campData.error.message);
+    const statusMap={ACTIVE:'active',PAUSED:'paused',DELETED:'ended',ARCHIVED:'ended',WITH_ISSUES:'paused'};
+    const objMap={OUTCOME_TRAFFIC:'traffic',OUTCOME_SALES:'conversions',OUTCOME_LEADS:'leads',OUTCOME_AWARENESS:'awareness',LINK_CLICKS:'traffic',CONVERSIONS:'conversions',LEAD_GENERATION:'leads',BRAND_AWARENESS:'awareness',REACH:'awareness',APP_INSTALLS:'traffic'};
+    const colors=['#1877f2','#7c3aed','#34d399','#f97316','#ec4899','#06b6d4','#eab308','#f87171'];
+    initMetaAds();
+    let newCount=0,updCount=0;
+    const since=new Date();since.setDate(since.getDate()-90);
+    const sinceStr=since.toISOString().split('T')[0];
+    const untilStr=new Date().toISOString().split('T')[0];
+    for(const camp of(campData.data||[])){
+      let ex=S.metaAds.campaigns.find(c=>c.fbId===camp.id);
+      if(!ex)ex=S.metaAds.campaigns.find(c=>c.name===camp.name&&!c.fbId);
+      if(!ex){
+        ex={id:'ma_'+Date.now()+'_'+camp.id,fbId:camp.id,name:camp.name,status:statusMap[camp.status]||'active',objective:objMap[camp.objective]||'conversions',color:colors[S.metaAds.campaigns.length%colors.length],entries:[]};
+        S.metaAds.campaigns.push(ex);newCount++;
+      }else{ex.fbId=camp.id;ex.status=statusMap[camp.status]||ex.status;updCount++;}
+      const insRes=await fetch(`${base}/${camp.id}/insights?fields=spend,impressions,clicks,actions,action_values&time_increment=1&time_range={"since":"${sinceStr}","until":"${untilStr}"}&access_token=${tok}`);
+      const insData=await insRes.json();
+      const purchTypes=['purchase','offsite_conversion.fb_pixel_purchase','omni_purchase','app_custom_event.fb_mobile_purchase'];
+      for(const ins of(insData.data||[])){
+        const convs=(ins.actions||[]).filter(a=>purchTypes.includes(a.action_type)).reduce((s,a)=>s+parseFloat(a.value||0),0);
+        const rev=(ins.action_values||[]).filter(a=>purchTypes.includes(a.action_type)).reduce((s,a)=>s+parseFloat(a.value||0),0);
+        const entry={date:ins.date_start,spend:parseFloat(ins.spend||0),impressions:parseInt(ins.impressions||0),clicks:parseInt(ins.clicks||0),conversions:Math.round(convs),revenue:rev};
+        const idx=ex.entries.findIndex(e=>e.date===entry.date);
+        if(idx>=0)ex.entries[idx]=entry;else ex.entries.push(entry);
+      }
+      ex.entries.sort((a,b)=>a.date<b.date?-1:1);
+    }
+    save();renderMetaAds();
+    const toast=document.createElement('div');
+    toast.style='position:fixed;bottom:24px;right:24px;background:#34d399;color:#052e16;padding:12px 20px;border-radius:12px;font-weight:700;z-index:9999;font-size:14px';
+    toast.textContent=`✓ Synchronizováno: ${newCount} nových, ${updCount} aktualizováno`;
+    document.body.appendChild(toast);setTimeout(()=>toast.remove(),4000);
+  }catch(err){
+    if(btn){btn.disabled=false;btn.textContent='🔄 Synchronizovat';}
+    alert('Chyba Meta API: '+err.message);
+  }
 }
 
 function fbStartSync(){

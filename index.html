@@ -705,6 +705,18 @@ function renderSidebar(){
 }
 
 function _resetViews(){welcomeView=false;statsView=false;visionView=false;mindsetView=false;journalView=false;reviewView=false;globalView=false}
+function renderAll(){
+  renderSidebar();
+  if(welcomeView)renderWelcome();
+  else if(statsView)renderStats();
+  else if(visionView)renderVisionBoard();
+  else if(mindsetView)renderMindset();
+  else if(journalView)renderJournal();
+  else if(reviewView)renderReview();
+  else if(globalView)renderGlobal();
+  else if(activeBiz)renderMain();
+  else renderWelcome();
+}
 function selBiz(id){_resetViews();activeBiz=id;activeTab='overview';renderSidebar();renderMain()}
 function selGlobal(){_resetViews();globalView=true;activeBiz=null;calSelDay=null;renderSidebar();renderGlobal()}
 function selWelcome(){if(_wTimer){clearInterval(_wTimer);_wTimer=null}_resetViews();welcomeView=true;activeBiz=null;renderSidebar();renderWelcome()}

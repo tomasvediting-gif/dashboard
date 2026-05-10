@@ -2643,7 +2643,7 @@ function fbSetStatus(state){
 function fbPush(){
   if(!fbDb||_fbMyWrite)return;
   _fbMyWrite=true;
-  fbDb.ref('dashboard').set(S).catch(()=>{}).finally(()=>{setTimeout(()=>{_fbMyWrite=false;},400);});
+  fbDb.ref('biz_vorel_2026').set(S).catch(()=>{}).finally(()=>{setTimeout(()=>{_fbMyWrite=false;},400);});
 }
 
 async function initFirebase(config){
@@ -2652,20 +2652,20 @@ async function initFirebase(config){
     if(!firebase.apps.length)firebase.initializeApp(config);
     fbDb=firebase.database();
     fbSetStatus('connecting');
-    const snap=await fbDb.ref('dashboard').once('value');
+    const snap=await fbDb.ref('biz_vorel_2026').once('value');
     if(snap.exists()){
       const remote=snap.val();
       if((remote._ts||0)>=(S._ts||0)){
         S=remote;localStorage.setItem(KEY,JSON.stringify(S));renderAll();
       }else{
         _fbMyWrite=true;
-        fbDb.ref('dashboard').set(S).catch(()=>{}).finally(()=>setTimeout(()=>{_fbMyWrite=false;},400));
+        fbDb.ref('biz_vorel_2026').set(S).catch(()=>{}).finally(()=>setTimeout(()=>{_fbMyWrite=false;},400));
       }
     }else{
       _fbMyWrite=true;
-      fbDb.ref('dashboard').set(S).catch(()=>{}).finally(()=>setTimeout(()=>{_fbMyWrite=false;},400));
+      fbDb.ref('biz_vorel_2026').set(S).catch(()=>{}).finally(()=>setTimeout(()=>{_fbMyWrite=false;},400));
     }
-    fbDb.ref('dashboard').on('value',(snap)=>{
+    fbDb.ref('biz_vorel_2026').on('value',(snap)=>{
       if(_fbMyWrite||!snap.exists())return;
       S=snap.val();localStorage.setItem(KEY,JSON.stringify(S));renderAll();
     });
@@ -2694,7 +2694,7 @@ function saveFbConfig(){
 function disconnectFirebase(){
   if(!confirm('Odpojit synchronizaci? Data zůstanou uložena lokálně.'))return;
   localStorage.removeItem(FB_KEY);
-  if(fbDb){fbDb.ref('dashboard').off();fbDb=null;}
+  if(fbDb){fbDb.ref('biz_vorel_2026').off();fbDb=null;}
   fbSetStatus('off');
   closeFbSetup();
 }

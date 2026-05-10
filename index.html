@@ -14,6 +14,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 /* ─── LOCK SCREEN ─── */
@@ -51,7 +53,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 
 /* ─── NAVBAR ─── */
 .navbar{
-  display:flex;align-items:center;padding:0 24px;height:58px;
+  display:flex;align-items:center;padding:0 24px;
+  padding-top:env(safe-area-inset-top);
+  height:calc(58px + env(safe-area-inset-top));
   background:rgba(13,17,23,0.85);backdrop-filter:blur(16px);
   border-bottom:1px solid var(--border);gap:14px;
   position:sticky;top:0;z-index:100;
@@ -63,7 +67,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 }
 
 /* ─── LAYOUT ─── */
-.layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 58px)}
+.layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 58px - env(safe-area-inset-top))}
 .sidebar{
   width:252px;flex-shrink:0;
   background:var(--surface);
@@ -412,7 +416,7 @@ select.fc{cursor:pointer}
 .rv-past{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:10px}
 .rv-past-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:13px;font-weight:600}
 /* ─── POMODORO ─── */
-.pom-fab{position:fixed;bottom:24px;right:90px;z-index:1000;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#f97316);border:none;cursor:pointer;font-size:20px;box-shadow:0 4px 24px rgba(239,68,68,.4);transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center;color:#fff}
+.pom-fab{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));right:90px;z-index:1000;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#f97316);border:none;cursor:pointer;font-size:20px;box-shadow:0 4px 24px rgba(239,68,68,.4);transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center;color:#fff}
 .pom-fab:hover{transform:scale(1.08)}
 .pom-fab.pom-on{animation:pom-pulse 2s infinite}
 @keyframes pom-pulse{0%,100%{box-shadow:0 4px 20px rgba(239,68,68,.4)}50%{box-shadow:0 4px 36px rgba(239,68,68,.85)}}
@@ -467,7 +471,7 @@ select.fc{cursor:pointer}
 .rec-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--surface3);color:var(--muted);white-space:nowrap}
 /* ─── CHAT ─── */
 .chat-fab{
-  position:fixed;bottom:24px;right:24px;z-index:1000;
+  position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));right:24px;z-index:1000;
   width:54px;height:54px;border-radius:50%;
   background:linear-gradient(135deg,#7c3aed,#818cf8);
   border:none;cursor:pointer;font-size:22px;
@@ -532,8 +536,8 @@ select.fc{cursor:pointer}
   .layout{flex-direction:column;height:auto;overflow:visible}
   .sidebar{position:fixed;top:0;left:-290px;bottom:0;z-index:300;width:280px;transition:left .25s cubic-bezier(.4,0,.2,1);overflow-y:auto}
   .sidebar.mob-open{left:0;box-shadow:6px 0 40px rgba(0,0,0,.7)}
-  .main{padding:14px 14px 90px;height:auto;overflow-y:visible}
-  .navbar{padding:0 12px;gap:10px}
+  .main{padding:14px 14px calc(90px + env(safe-area-inset-bottom));height:auto;overflow-y:visible}
+  .navbar{padding:0 12px;padding-top:env(safe-area-inset-top);height:calc(58px + env(safe-area-inset-top));gap:10px}
   .navbar-title{font-size:15px}
   .btn.btn-sm{font-size:12px;padding:7px 11px}
 
@@ -570,10 +574,10 @@ select.fc{cursor:pointer}
 
   .rv-section{padding:16px 16px}
 
-  .pom-fab{bottom:20px;right:80px}
-  .pom-panel{right:14px;bottom:86px;width:calc(100vw - 28px);max-width:320px}
-  .chat-fab{bottom:20px;right:16px}
-  .chat-panel{right:14px;bottom:86px;width:calc(100vw - 28px)}
+  .pom-fab{bottom:calc(20px + env(safe-area-inset-bottom));right:80px}
+  .pom-panel{right:14px;bottom:calc(86px + env(safe-area-inset-bottom));width:calc(100vw - 28px);max-width:320px}
+  .chat-fab{bottom:calc(20px + env(safe-area-inset-bottom));right:16px}
+  .chat-panel{right:14px;bottom:calc(86px + env(safe-area-inset-bottom));width:calc(100vw - 28px)}
 
   .breakdown-cat{flex:0 0 90px}
   .breakdown-amt{flex:0 0 68px;font-size:12px}
@@ -615,6 +619,10 @@ select.fc{cursor:pointer}
 <nav class="navbar">
   <button class="mob-menu-btn" onclick="mobToggleSidebar()" aria-label="Menu">☰</button>
   <div class="navbar-title">Business Dashboard</div>
+  <span id="syncStatus" onclick="openFbSetup()" title="Nastavit synchronizaci" style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 9px;border-radius:8px;transition:background .15s;flex-shrink:0" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+    <span id="syncDot" style="width:8px;height:8px;border-radius:50%;background:var(--muted2);display:inline-block;flex-shrink:0;transition:background .3s"></span>
+    <span id="syncLabel" style="font-size:11px;color:var(--muted);font-weight:600">Sync</span>
+  </span>
   <button class="btn btn-primary btn-sm" onclick="openAddBiz()">+ Přidat</button>
 </nav>
 <div class="layout">
@@ -641,7 +649,7 @@ select.fc{cursor:pointer}
 // ── DATA ──────────────────────────────────────────────────────
 const KEY='biz_dash_v1';
 function load(){try{const d=JSON.parse(localStorage.getItem(KEY))||{};if(!d.businesses)d.businesses=[];if(!d.global)d.global={events:[],habits:[],dailyTasks:[]};return d}catch{return{businesses:[],global:{events:[],habits:[],dailyTasks:[]}}}}
-function save(){localStorage.setItem(KEY,JSON.stringify(S))}
+function save(){S._ts=Date.now();localStorage.setItem(KEY,JSON.stringify(S));fbPush();}
 let S=load(),activeBiz=null,activeTab='overview';
 let calYear=new Date().getFullYear(),calMonth=new Date().getMonth(),calSelDay=null,globalView=false,welcomeView=true,statsView=false,visionView=false,mindsetView=false,journalView=false,reviewView=false;
 let _wTimer=null;
@@ -2616,6 +2624,93 @@ function pomStartForTask(taskId,bizId,taskText){
   pomStart();
 }
 
+// ── FIREBASE SYNC ─────────────────────────────────────────────
+const FB_KEY='dash_fb_conf';
+let fbDb=null,_fbMyWrite=false;
+
+function fbGetConfig(){try{return JSON.parse(localStorage.getItem(FB_KEY));}catch{return null;}}
+
+function fbSetStatus(state){
+  const dot=document.getElementById('syncDot');
+  const lbl=document.getElementById('syncLabel');
+  if(!dot)return;
+  const colors={off:'var(--muted2)',connecting:'var(--yellow)',ok:'var(--green)',err:'var(--red)'};
+  const labels={off:'Sync',connecting:'Připojuji…',ok:'Sync ✓',err:'Chyba'};
+  dot.style.background=colors[state]||colors.off;
+  if(lbl)lbl.textContent=labels[state]||'Sync';
+}
+
+function fbPush(){
+  if(!fbDb||_fbMyWrite)return;
+  _fbMyWrite=true;
+  fbDb.ref('dashboard').set(S).catch(()=>{}).finally(()=>{setTimeout(()=>{_fbMyWrite=false;},400);});
+}
+
+async function initFirebase(config){
+  try{
+    if(fbDb)return;
+    if(!firebase.apps.length)firebase.initializeApp(config);
+    fbDb=firebase.database();
+    fbSetStatus('connecting');
+    const snap=await fbDb.ref('dashboard').once('value');
+    if(snap.exists()){
+      const remote=snap.val();
+      if((remote._ts||0)>=(S._ts||0)){
+        S=remote;localStorage.setItem(KEY,JSON.stringify(S));renderAll();
+      }else{
+        _fbMyWrite=true;
+        fbDb.ref('dashboard').set(S).catch(()=>{}).finally(()=>setTimeout(()=>{_fbMyWrite=false;},400));
+      }
+    }else{
+      _fbMyWrite=true;
+      fbDb.ref('dashboard').set(S).catch(()=>{}).finally(()=>setTimeout(()=>{_fbMyWrite=false;},400));
+    }
+    fbDb.ref('dashboard').on('value',(snap)=>{
+      if(_fbMyWrite||!snap.exists())return;
+      S=snap.val();localStorage.setItem(KEY,JSON.stringify(S));renderAll();
+    });
+    fbSetStatus('ok');
+  }catch(e){console.error('Firebase:',e);fbSetStatus('err');}
+}
+
+function openFbSetup(){
+  document.getElementById('fbSetupModal').style.display='flex';
+  const cfg=fbGetConfig();
+  if(cfg)document.getElementById('fbConfigInput').value=JSON.stringify(cfg,null,2);
+}
+function closeFbSetup(){document.getElementById('fbSetupModal').style.display='none';}
+function saveFbConfig(){
+  const raw=document.getElementById('fbConfigInput').value.trim();
+  const err=document.getElementById('fbSetupErr');
+  err.textContent='';
+  try{
+    const config=JSON.parse(raw);
+    if(!config.databaseURL)throw new Error('Chybí pole databaseURL');
+    localStorage.setItem(FB_KEY,JSON.stringify(config));
+    closeFbSetup();
+    initFirebase(config);
+  }catch(e){err.textContent='Chyba: '+e.message;}
+}
+function disconnectFirebase(){
+  if(!confirm('Odpojit synchronizaci? Data zůstanou uložena lokálně.'))return;
+  localStorage.removeItem(FB_KEY);
+  if(fbDb){fbDb.ref('dashboard').off();fbDb=null;}
+  fbSetStatus('off');
+  closeFbSetup();
+}
+
+// Hardcoded config — auto-init vždy
+const FB_DEFAULT={
+  apiKey:"AIzaSyDU6SP55dVtSvzy4MRxI8v0FF5UxZbtIeo",
+  authDomain:"dashboard-81afc.firebaseapp.com",
+  databaseURL:"https://dashboard-81afc-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:"dashboard-81afc",
+  storageBucket:"dashboard-81afc.firebasestorage.app",
+  messagingSenderId:"934609195024",
+  appId:"1:934609195024:web:4aba0abc0e5bd99fb0fa95"
+};
+initFirebase(fbGetConfig()||FB_DEFAULT);
+
 // ── MOBILE SIDEBAR ────────────────────────────────────────────
 function mobToggleSidebar(){
   document.getElementById('sidebar').classList.toggle('mob-open');
@@ -2714,6 +2809,29 @@ lockCheck();
     <select id="pomTaskSel" style="width:100%;background:var(--surface3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;font-size:12px;font-family:inherit;cursor:pointer" onchange="pomPickTask()">
       <option value="">— bez úkolu —</option>
     </select>
+  </div>
+</div>
+<!-- ── FIREBASE SETUP MODAL ── -->
+<div id="fbSetupModal" class="modal-ov" style="display:none" onclick="if(event.target===this)closeFbSetup()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">🔥 Firebase Synchronizace</div>
+    <p style="color:var(--muted);font-size:13.5px;margin-bottom:6px;line-height:1.6">Synchronizace dat v reálném čase mezi PC a telefonem. Potřebuješ bezplatný Firebase účet.</p>
+    <ol style="color:var(--muted);font-size:12.5px;line-height:2;padding-left:18px;margin-bottom:18px">
+      <li>Jdi na <b style="color:var(--text)">firebase.google.com</b> → Get started</li>
+      <li>Create project → Build → <b style="color:var(--text)">Realtime Database</b> → Test mode</li>
+      <li>⚙️ Project settings → Your apps → klikni <b style="color:var(--text)">&lt;/&gt;</b> → Register</li>
+      <li>Zkopíruj <b style="color:var(--text)">firebaseConfig</b> objekt a vlož sem:</li>
+    </ol>
+    <div class="fg">
+      <label>Firebase Config JSON</label>
+      <textarea class="fc" id="fbConfigInput" style="min-height:150px;font-size:12px;font-family:monospace;line-height:1.5" placeholder='{\n  "apiKey": "...",\n  "authDomain": "...",\n  "databaseURL": "https://xxx.firebaseio.com",\n  "projectId": "...",\n  ...\n}'></textarea>
+    </div>
+    <div id="fbSetupErr" style="color:var(--red);font-size:13px;margin-bottom:12px;min-height:16px"></div>
+    <div class="m-acts" style="flex-wrap:wrap;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="disconnectFirebase()" style="margin-right:auto;color:var(--red);border-color:var(--red-dim)">Odpojit</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeFbSetup()">Zrušit</button>
+      <button class="btn btn-primary btn-sm" onclick="saveFbConfig()">🔥 Připojit</button>
+    </div>
   </div>
 </div>
 <button class="chat-fab" onclick="chatToggle()" title="Chat asistent">💬</button>

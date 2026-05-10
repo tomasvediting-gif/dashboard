@@ -1,11 +1,7 @@
-const CACHE = 'dashboard-v3';
+const CACHE = 'dashboard-v4';
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE)
-      .then(c => c.add('./'))
-      .then(() => self.skipWaiting())
-  );
+  e.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', e => {
@@ -17,8 +13,13 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+
+  // Nikdy neinterceptuj cross-origin požadavky (Firebase SDK, CDN, gstatic...)
+  if (url.origin !== location.origin) return;
+
+  // Navigace (HTML) — vždy síť, fallback cache
   if (e.request.mode === 'navigate') {
-    // Navigation: network-first, fallback to cache
     e.respondWith(
       fetch(e.request)
         .then(r => {
@@ -28,18 +29,19 @@ self.addEventListener('fetch', e => {
         })
         .catch(() => caches.match('./'))
     );
-  } else {
-    // Assets: network-first, fallback to cache
-    e.respondWith(
-      fetch(e.request)
-        .then(r => {
-          if (r.ok) {
-            const copy = r.clone();
-            caches.open(CACHE).then(c => c.put(e.request, copy));
-          }
-          return r;
-        })
-        .catch(() => caches.match(e.request))
-    );
+    return;
   }
+
+  // Same-origin assety — síť first, fallback cache
+  e.respondWith(
+    fetch(e.request)
+      .then(r => {
+        if (r.ok) {
+          const copy = r.clone();
+          caches.open(CACHE).then(c => c.put(e.request, r.clone()));
+        }
+        return r;
+      })
+      .catch(() => caches.match(e.request))
+  );
 });

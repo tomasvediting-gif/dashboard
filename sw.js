@@ -1,4 +1,4 @@
-const CACHE = 'dashboard-v4';
+const CACHE = 'dashboard-v5';
 
 self.addEventListener('install', e => {
   e.waitUntil(self.skipWaiting());

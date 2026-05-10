@@ -17,10 +17,10 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 /* ─── LOCK SCREEN ─── */
-.lock-overlay{position:fixed;inset:0;z-index:99999;background:#07090f;display:flex;align-items:center;justify-content:center;padding:24px;transition:opacity .3s}
-.lock-overlay.unlocking{opacity:0;pointer-events:none}
-.lock-card{background:#0d1117;border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:48px 36px 40px;width:100%;max-width:340px;text-align:center}
-.lock-icon{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,#7c3aed,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 20px}
+.lock-overlay{position:fixed;inset:0;z-index:99999;background:#07090f;display:flex;align-items:center;justify-content:center;padding:24px;transition:background .15s,opacity .5s}
+#lockCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.lock-card{background:#0d1117;border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:48px 36px 40px;width:100%;max-width:340px;text-align:center;position:relative;z-index:1;overflow:hidden;transition:transform .5s cubic-bezier(.55,0,1,.45),opacity .5s ease,border-color .3s,box-shadow .3s}
+.lock-icon{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,#7c3aed,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 20px;transition:background .4s,transform .4s cubic-bezier(.34,1.56,.64,1)}
 .lock-title{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px;background:linear-gradient(135deg,#a78bfa,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .lock-sub{font-size:13px;color:#3d4f6b;margin-bottom:32px}
 .lock-input{width:100%;background:#131a24;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 18px;font-size:16px;color:#eef2ff;font-family:inherit;text-align:center;letter-spacing:2px;outline:none;margin-bottom:14px;transition:border-color .2s}
@@ -28,6 +28,14 @@
 .lock-btn{width:100%;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;transition:opacity .18s}
 .lock-btn:hover{opacity:.88}
 .lock-err{font-size:13px;color:#f87171;margin-top:10px;min-height:18px}
+@keyframes lock-scan{0%{top:-3px;opacity:1}100%{top:105%;opacity:.2}}
+@keyframes lock-shake{0%,100%{transform:translateX(0)}18%{transform:translateX(-12px)}36%{transform:translateX(11px)}54%{transform:translateX(-9px)}72%{transform:translateX(8px)}90%{transform:translateX(-4px)}}
+@keyframes lock-granted{0%{opacity:0;transform:translateY(8px) scale(.9)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes lock-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes welcome-sub{0%{opacity:0;letter-spacing:8px}100%{opacity:1;letter-spacing:4px}}
+@keyframes welcome-name{0%{opacity:0;transform:scale(.82) translateY(18px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes welcome-line{0%{width:0;opacity:0}100%{width:80px;opacity:1}}
+@keyframes welcome-fade{0%{opacity:0}100%{opacity:1}}
 :root{
   --bg:#07090f;
   --surface:#0d1117;
@@ -47,7 +55,8 @@
   --yellow:#fbbf24;
   --radius:14px;
 }
-body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',system-ui,sans-serif;background:none;color:var(--text);min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+#bgCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
 
 /* ─── NAVBAR ─── */
 .navbar{
@@ -65,7 +74,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 }
 
 /* ─── LAYOUT ─── */
-.layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 58px - env(safe-area-inset-top))}
+.layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 58px - env(safe-area-inset-top));position:relative;z-index:1}
 .sidebar{
   width:252px;flex-shrink:0;
   background:var(--surface);
@@ -104,7 +113,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
   border-color:rgba(124,58,237,.35);
 }
 .biz-item.active .biz-name{color:var(--text);font-weight:600}
-.biz-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.biz-dot{width:32px;height:32px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:transform .18s}
+.biz-item:hover .biz-dot{transform:scale(1.08)}
 .biz-name{font-size:13.5px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#94a3b8;transition:color .15s}
 .biz-item:hover .biz-name{color:var(--text)}
 .biz-acts{display:none;gap:2px}
@@ -605,15 +615,24 @@ select.fc{cursor:pointer}
 </style>
 </head>
 <body>
+<canvas id="bgCanvas"></canvas>
 <!-- ── LOCK SCREEN ── -->
 <div class="lock-overlay" id="lockOverlay">
-  <div class="lock-card">
-    <div class="lock-icon">📊</div>
+  <canvas id="lockCanvas"></canvas>
+  <!-- Welcome screen -->
+  <div id="welcomeScreen" style="position:absolute;inset:0;z-index:3;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px">
+    <div id="wsSub" style="font-size:11px;font-weight:700;letter-spacing:8px;color:rgba(167,139,250,.55);text-transform:uppercase;margin-bottom:20px;opacity:0">Vítejte</div>
+    <div id="wsName" style="font-size:clamp(36px,8vw,64px);font-weight:800;letter-spacing:-2px;line-height:1.1;background:linear-gradient(135deg,#a78bfa 0%,#818cf8 45%,#34d399 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;opacity:0;margin-bottom:28px">Mistr Vorel</div>
+    <div id="wsLine" style="height:1px;background:linear-gradient(90deg,transparent,rgba(167,139,250,.4),transparent);width:0;opacity:0;margin-bottom:28px"></div>
+    <div id="wsDate" style="font-size:12px;font-weight:500;color:rgba(100,116,139,.7);letter-spacing:1px;opacity:0"></div>
+  </div>
+  <div class="lock-card" id="lockCard">
+    <div class="lock-icon" id="lockIcon"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="rgba(255,255,255,.92)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"><path d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg></div>
     <div class="lock-title">Business Dashboard</div>
     <div class="lock-sub">Soukromá aplikace pana Vorla</div>
     <input class="lock-input" id="lockInput" type="password" placeholder="Heslo" autocomplete="current-password"
       onkeydown="if(event.key==='Enter')lockTry()">
-    <button class="lock-btn" onclick="lockTry()">Vstoupit</button>
+    <button class="lock-btn" id="lockBtn" onclick="lockTry()">Vstoupit</button>
     <div class="lock-err" id="lockErr"></div>
   </div>
 </div>
@@ -660,35 +679,51 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 const COLORS=['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316','#84cc16'];
 
 // ── SIDEBAR ───────────────────────────────────────────────────
+function _ni(grad,svg,shadow){
+  return `<div class="biz-dot" style="background:${grad};${shadow?'box-shadow:0 3px 10px '+shadow:''}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="rgba(255,255,255,.93)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8">${svg}</svg></div>`;
+}
+const _SVG={
+  home:'<path d="M2.25 12l8.954-8.955c.44-.44 1.152-.44 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/>',
+  vision:'<path d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>',
+  stats:'<path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/>',
+  mindset:'<path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/>',
+  journal:'<path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/>',
+  review:'<path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>',
+  global:'<path d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/>',
+  biz:'<path d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/>',
+  edit:'<path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/>',
+  trash:'<path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>'
+};
+
 function renderSidebar(){
   const el=document.getElementById('bizList');
   const personal=`<div style="padding:8px 8px 0">
     <div class="personal-item${welcomeView?' active':''}" onclick="selWelcome()">
-      <span style="font-size:15px">🏠</span>
+      ${_ni('linear-gradient(135deg,#6366f1,#8b5cf6)',_SVG.home,'rgba(99,102,241,.35)')}
       <span class="biz-name" style="${welcomeView?'color:var(--text);font-weight:600':''}">Vítejte</span>
     </div>
     <div class="personal-item${visionView?' active':''}" onclick="selVisionBoard()">
-      <span style="font-size:15px">🎨</span>
+      ${_ni('linear-gradient(135deg,#ec4899,#f43f5e)',_SVG.vision,'rgba(236,72,153,.35)')}
       <span class="biz-name" style="${visionView?'color:var(--text);font-weight:600':''}">Vision Board</span>
     </div>
     <div class="personal-item${statsView?' active':''}" onclick="selStats()">
-      <span style="font-size:15px">📊</span>
+      ${_ni('linear-gradient(135deg,#3b82f6,#06b6d4)',_SVG.stats,'rgba(59,130,246,.35)')}
       <span class="biz-name" style="${statsView?'color:var(--text);font-weight:600':''}">Statistiky</span>
     </div>
     <div class="personal-item${mindsetView?' active':''}" onclick="selMindset()">
-      <span style="font-size:15px">🧠</span>
+      ${_ni('linear-gradient(135deg,#10b981,#34d399)',_SVG.mindset,'rgba(16,185,129,.35)')}
       <span class="biz-name" style="${mindsetView?'color:var(--text);font-weight:600':''}">Mindset</span>
     </div>
     <div class="personal-item${journalView?' active':''}" onclick="selJournal()">
-      <span style="font-size:15px">📓</span>
+      ${_ni('linear-gradient(135deg,#f59e0b,#f97316)',_SVG.journal,'rgba(245,158,11,.35)')}
       <span class="biz-name" style="${journalView?'color:var(--text);font-weight:600':''}">Deník</span>
     </div>
     <div class="personal-item${reviewView?' active':''}" onclick="selReview()">
-      <span style="font-size:15px">🏆</span>
+      ${_ni('linear-gradient(135deg,#eab308,#f59e0b)',_SVG.review,'rgba(234,179,8,.35)')}
       <span class="biz-name" style="${reviewView?'color:var(--text);font-weight:600':''}">Týdenní review</span>
     </div>
     <div class="personal-item${(!welcomeView&&!statsView&&!visionView&&!mindsetView&&!journalView&&!reviewView&&globalView)?' active':''}" onclick="selGlobal()">
-      <span style="font-size:15px">📋</span>
+      ${_ni('linear-gradient(135deg,#6366f1,#4f46e5)',_SVG.global,'rgba(99,102,241,.35)')}
       <span class="biz-name" style="${(!welcomeView&&!statsView&&!visionView&&!mindsetView&&!journalView&&!reviewView&&globalView)?'color:var(--text);font-weight:600':''}">Osobní přehled</span>
     </div>
   </div>
@@ -696,11 +731,11 @@ function renderSidebar(){
   const bizHTML=S.businesses.length
     ?S.businesses.map(b=>`
       <div class="biz-item${(!globalView&&b.id===activeBiz)?' active':''}" onclick="selBiz('${b.id}')">
-        <div class="biz-dot" style="background:${b.color}"></div>
+        ${_ni(`linear-gradient(135deg,${b.color},${b.color}bb)`,_SVG.biz,b.color+'44')}
         <span class="biz-name">${esc(b.name)}</span>
         <div class="biz-acts">
-          <button onclick="event.stopPropagation();openEditBiz('${b.id}')" title="Upravit">✏️</button>
-          <button onclick="event.stopPropagation();delBiz('${b.id}')" title="Smazat">🗑️</button>
+          <button onclick="event.stopPropagation();openEditBiz('${b.id}')" title="Upravit"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8">${_SVG.edit}</svg></button>
+          <button onclick="event.stopPropagation();delBiz('${b.id}')" title="Smazat"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8">${_SVG.trash}</svg></button>
         </div>
       </div>`).join('')
     :`<div style="padding:10px 16px;font-size:13px;color:var(--muted2)">Žádné businessy zatím.</div>`;
@@ -2701,28 +2736,319 @@ document.getElementById('sidebar').addEventListener('click',function(e){
 // ── LOCK SCREEN ───────────────────────────────────────────────
 const APP_PASSWORD='Vorle2026'; // ← ZDE ZMĚŇTE HESLO
 const LOCK_KEY='dash_auth';
+
+function _delay(ms){return new Promise(r=>setTimeout(r,ms))}
+
+function initLockParticles(){
+  const canvas=document.getElementById('lockCanvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  let W=canvas.width=window.innerWidth;
+  let H=canvas.height=window.innerHeight;
+  const N=Math.min(90,Math.floor(W*H/12000));
+  const pts=[];
+  for(let i=0;i<N;i++){
+    pts.push({
+      x:Math.random()*W,y:Math.random()*H,
+      vx:(Math.random()-.5)*.45,vy:(Math.random()-.5)*.45,
+      r:Math.random()*1.8+.4,
+      pulse:Math.random()*Math.PI*2
+    });
+  }
+  let frame=0;
+  let animId;
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    frame++;
+    for(let i=0;i<pts.length;i++){
+      const a=pts[i];
+      a.x+=a.vx; a.y+=a.vy;
+      if(a.x<0||a.x>W)a.vx*=-1;
+      if(a.y<0||a.y>H)a.vy*=-1;
+      a.pulse+=.018;
+      const alpha=.4+.3*Math.sin(a.pulse);
+      for(let j=i+1;j<pts.length;j++){
+        const b=pts[j];
+        const dx=a.x-b.x,dy=a.y-b.y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<130){
+          const op=.18*(1-d/130);
+          ctx.strokeStyle=`rgba(124,58,237,${op})`;
+          ctx.lineWidth=.6;
+          ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+        }
+      }
+      ctx.fillStyle=`rgba(167,139,250,${alpha})`;
+      ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,Math.PI*2);ctx.fill();
+    }
+    animId=requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',()=>{W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight});
+  draw();
+  return ()=>cancelAnimationFrame(animId);
+}
+
+let _stopParticles=null;
+
+// ── BACKGROUND PARTICLES (celý dashboard) ─────────────────────
+(function initBgParticles(){
+  const canvas=document.getElementById('bgCanvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  let W=canvas.width=window.innerWidth;
+  let H=canvas.height=window.innerHeight;
+  const N=Math.min(70,Math.floor(W*H/14000));
+  const pts=[];
+  for(let i=0;i<N;i++){
+    pts.push({
+      x:Math.random()*W,y:Math.random()*H,
+      vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,
+      r:Math.random()*1.6+.3,
+      pulse:Math.random()*Math.PI*2,
+      hue:Math.random()<.7?'124,58,237':'79,70,229'
+    });
+  }
+  function draw(){
+    ctx.fillStyle='#07090f';
+    ctx.fillRect(0,0,W,H);
+    for(let i=0;i<pts.length;i++){
+      const a=pts[i];
+      a.x+=a.vx; a.y+=a.vy;
+      if(a.x<0||a.x>W)a.vx*=-1;
+      if(a.y<0||a.y>H)a.vy*=-1;
+      a.pulse+=.014;
+      const alpha=.3+.25*Math.sin(a.pulse);
+      for(let j=i+1;j<pts.length;j++){
+        const b=pts[j];
+        const dx=a.x-b.x,dy=a.y-b.y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<150){
+          ctx.strokeStyle=`rgba(124,58,237,${.12*(1-d/150)})`;
+          ctx.lineWidth=.5;
+          ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+        }
+      }
+      ctx.fillStyle=`rgba(${a.hue},${alpha})`;
+      ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,Math.PI*2);ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',()=>{
+    W=canvas.width=window.innerWidth;
+    H=canvas.height=window.innerHeight;
+  });
+  draw();
+})();
+
 function lockCheck(){
   if(sessionStorage.getItem(LOCK_KEY)==='1'){
     document.getElementById('lockOverlay').style.display='none';
   }else{
+    _stopParticles=initLockParticles();
     setTimeout(()=>document.getElementById('lockInput').focus(),120);
   }
 }
+
+// ── JARVIS HLAS ───────────────────────────────────────────────
+function _speakWelcome(){
+  if(!window.speechSynthesis)return;
+  speechSynthesis.cancel();
+  const say=()=>{
+    const voices=speechSynthesis.getVoices();
+    const preferred=['Google UK English Male','Daniel','Arthur','Google UK English Female','Microsoft David Desktop - English (United States)','Microsoft David','Microsoft Mark','Alex'];
+    let voice=null;
+    for(const name of preferred){voice=voices.find(v=>v.name===name);if(voice)break;}
+    if(!voice)voice=voices.find(v=>v.lang.startsWith('en-GB'))||voices.find(v=>v.lang.startsWith('en'))||voices[0];
+    const u=new SpeechSynthesisUtterance('Welcome... Mister Vorel.');
+    if(voice)u.voice=voice;
+    u.pitch=.72;   // nízký tón — Jarvis efekt
+    u.rate=.82;    // pomalé, vědomé
+    u.volume=.95;
+    speechSynthesis.speak(u);
+  };
+  const vl=speechSynthesis.getVoices();
+  if(vl.length)say();
+  else speechSynthesis.addEventListener('voiceschanged',say,{once:true});
+}
+// Pre-load voices při prvním načtení
+if(window.speechSynthesis)speechSynthesis.getVoices();
+
+let _ac=null;
+function _getAC(){
+  try{
+    if(!_ac||_ac.state==='closed')_ac=new(window.AudioContext||window.webkitAudioContext)();
+    if(_ac.state==='suspended')_ac.resume();
+    return _ac;
+  }catch(e){return null;}
+}
+function _playSound(type){
+  try{
+    const ac=_getAC(); if(!ac)return;
+    const t=ac.currentTime;
+    if(type==='unlock'){
+      // Krátký sci-fi rising beep — ikona odemčení
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.connect(g);g.connect(ac.destination);
+      o.type='sine';
+      o.frequency.setValueAtTime(520,t);
+      o.frequency.exponentialRampToValueAtTime(1100,t+.18);
+      g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(.28,t+.02);
+      g.gain.exponentialRampToValueAtTime(.0001,t+.22);
+      o.start(t);o.stop(t+.23);
+    }
+    if(type==='scan'){
+      // Elektronický sweep — scan linie
+      const o=ac.createOscillator(),f=ac.createBiquadFilter(),g=ac.createGain();
+      o.connect(f);f.connect(g);g.connect(ac.destination);
+      o.type='sawtooth';f.type='bandpass';f.Q.value=2.5;
+      o.frequency.setValueAtTime(280,t);
+      o.frequency.exponentialRampToValueAtTime(2800,t+.52);
+      f.frequency.setValueAtTime(280,t);
+      f.frequency.exponentialRampToValueAtTime(2800,t+.52);
+      g.gain.setValueAtTime(.13,t);g.gain.exponentialRampToValueAtTime(.0001,t+.55);
+      o.start(t);o.stop(t+.56);
+    }
+    if(type==='granted'){
+      // C dur arpeggio — PŘÍSTUP POVOLEN
+      [[523.25,0],[659.25,.09],[783.99,.18],[1046.5,.27]].forEach(([freq,d])=>{
+        const o=ac.createOscillator(),g=ac.createGain();
+        o.connect(g);g.connect(ac.destination);
+        o.type='sine';o.frequency.value=freq;
+        g.gain.setValueAtTime(.0001,t+d);g.gain.linearRampToValueAtTime(.2,t+d+.04);
+        g.gain.exponentialRampToValueAtTime(.0001,t+d+.48);
+        o.start(t+d);o.stop(t+d+.5);
+      });
+    }
+    if(type==='whoosh'){
+      // Implode whoosh — karta se zhroutí
+      const dur=.42,buf=ac.createBuffer(1,Math.floor(ac.sampleRate*dur),ac.sampleRate);
+      const data=buf.getChannelData(0);
+      for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*Math.pow(1-i/data.length,1.8);
+      const src=ac.createBufferSource(),flt=ac.createBiquadFilter(),g=ac.createGain();
+      src.buffer=buf;flt.type='bandpass';flt.Q.value=1.5;
+      flt.frequency.setValueAtTime(3500,t);flt.frequency.exponentialRampToValueAtTime(120,t+dur);
+      g.gain.setValueAtTime(.4,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+      src.connect(flt);flt.connect(g);g.connect(ac.destination);src.start(t);
+    }
+    if(type==='flash'){
+      // Ostrý impact boom — bílý záblesk
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.connect(g);g.connect(ac.destination);
+      o.type='sine';
+      o.frequency.setValueAtTime(900,t);o.frequency.exponentialRampToValueAtTime(55,t+.15);
+      g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(.5,t+.008);
+      g.gain.exponentialRampToValueAtTime(.0001,t+.2);
+      o.start(t);o.stop(t+.22);
+    }
+    if(type==='error'){
+      // Dvojitý nízký bzukot — špatné heslo
+      [0,.2].forEach(d=>{
+        const o=ac.createOscillator(),g=ac.createGain();
+        o.connect(g);g.connect(ac.destination);
+        o.type='square';
+        o.frequency.setValueAtTime(170,t+d);o.frequency.exponentialRampToValueAtTime(110,t+d+.14);
+        g.gain.setValueAtTime(.0001,t+d);g.gain.linearRampToValueAtTime(.15,t+d+.01);
+        g.gain.exponentialRampToValueAtTime(.0001,t+d+.16);
+        o.start(t+d);o.stop(t+d+.17);
+      });
+    }
+  }catch(e){}
+}
+
 async function lockTry(){
   const val=document.getElementById('lockInput').value;
   const err=document.getElementById('lockErr');
-  if(val===APP_PASSWORD){
-    sessionStorage.setItem(LOCK_KEY,'1');
-    const ov=document.getElementById('lockOverlay');
-    ov.classList.add('unlocking');
-    setTimeout(()=>ov.style.display='none',320);
-  }else{
+  const card=document.getElementById('lockCard');
+  const icon=document.getElementById('lockIcon');
+  const btn=document.getElementById('lockBtn');
+  const ov=document.getElementById('lockOverlay');
+
+  if(val!==APP_PASSWORD){
+    _playSound('error');
+    card.style.animation='lock-shake .45s ease';
+    card.addEventListener('animationend',()=>card.style.animation='',{once:true});
     err.textContent='Špatné heslo. Zkus znovu.';
     document.getElementById('lockInput').value='';
     document.getElementById('lockInput').focus();
     setTimeout(()=>err.textContent='',2500);
+    return;
   }
+
+  // správné heslo — zablokuj tlačítko
+  btn.disabled=true;
+  document.getElementById('lockInput').disabled=true;
+  sessionStorage.setItem(LOCK_KEY,'1');
+
+  // Fáze 1 — ikona se změní na ✓ s bounce efektem
+  _playSound('unlock');
+  icon.style.background='linear-gradient(135deg,#34d399,#10b981)';
+  icon.style.transform='scale(1.35) rotate(-8deg)';
+  icon.innerHTML='<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="rgba(255,255,255,.95)" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"><path d="M4.5 12.75l6 6 9-13.5"/></svg>';
+  await _delay(180);
+  icon.style.transform='scale(.92) rotate(3deg)';
+  await _delay(120);
+  icon.style.transform='scale(1) rotate(0deg)';
+
+  // Fáze 2 — scan linie přes kartu
+  await _delay(80);
+  _playSound('scan');
+  const scan=document.createElement('div');
+  scan.style.cssText='position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent 0%,#34d399 40%,rgba(52,211,153,.8) 50%,#34d399 60%,transparent 100%);top:-3px;pointer-events:none;animation:lock-scan .55s ease forwards;box-shadow:0 0 10px #34d399,0 0 22px rgba(52,211,153,.5)';
+  card.appendChild(scan);
+
+  // Fáze 3 — zelené záření karty + "PŘÍSTUP POVOLEN" text
+  await _delay(200);
+  _playSound('granted');
+  card.style.borderColor='rgba(52,211,153,.5)';
+  card.style.boxShadow='0 0 40px rgba(52,211,153,.22),0 0 80px rgba(52,211,153,.1),inset 0 0 30px rgba(52,211,153,.04)';
+  const granted=document.createElement('div');
+  granted.textContent='✓  PŘÍSTUP POVOLEN';
+  granted.style.cssText='font-size:10px;font-weight:800;letter-spacing:3.5px;color:#34d399;margin-top:18px;animation:lock-granted .35s cubic-bezier(.34,1.56,.64,1) forwards;opacity:0;text-shadow:0 0 12px rgba(52,211,153,.6)';
+  card.appendChild(granted);
+
+  // Fáze 4 — karta se zhroutí (scale 0) a zmizí
+  await _delay(750);
+  _playSound('whoosh');
+  card.style.transform='scale(0) translateY(-30px)';
+  card.style.opacity='0';
+
+  // Fáze 4b — Welcome screen
+  await _delay(380);
+  const ws=document.getElementById('welcomeScreen');
+  const wsSub=document.getElementById('wsSub');
+  const wsName=document.getElementById('wsName');
+  const wsLine=document.getElementById('wsLine');
+  const wsDate=document.getElementById('wsDate');
+  const now=new Date();
+  wsDate.textContent=now.toLocaleDateString('cs-CZ',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  ws.style.display='flex';
+  // "Vítejte" nápis
+  await _delay(30);
+  wsSub.style.animation='welcome-sub .7s cubic-bezier(.22,1,.36,1) forwards';
+  await _delay(320);
+  // "Mistr Vorel" velký gradient text + Jarvis hlas
+  _speakWelcome();
+  wsName.style.animation='welcome-name .65s cubic-bezier(.34,1.28,.64,1) forwards';
+  await _delay(420);
+  // Dekorativní linka
+  wsLine.style.animation='welcome-line .5s ease forwards';
+  await _delay(200);
+  // Datum
+  wsDate.style.animation='welcome-fade .4s ease forwards';
+  await _delay(1000);
+
+  // Fáze 5 — záblesk bílého světla a fade do dashboardu
+  if(_stopParticles)_stopParticles();
+  _playSound('flash');
+  ov.style.transition='background .12s,opacity .5s';
+  ov.style.background='rgba(255,255,255,.95)';
+  await _delay(120);
+  ov.style.background='#07090f';
+  ov.style.opacity='0';
+  await _delay(480);
+  ov.style.display='none';
 }
+
 lockCheck();
 
 // ── PWA SETUP ─────────────────────────────────────────────────

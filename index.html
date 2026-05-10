@@ -519,6 +519,84 @@ select.fc{cursor:pointer}
   color:#fff;font-size:15px;cursor:pointer;font-weight:700;transition:background .15s;
 }
 .chat-send:hover{background:var(--accent2)}
+
+/* ─── MOBILE OVERLAY ─── */
+.mob-menu-btn{display:none;background:none;border:none;color:var(--text);font-size:24px;cursor:pointer;padding:4px 8px;line-height:1;flex-shrink:0}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;backdrop-filter:blur(4px)}
+.sidebar-overlay.mob-open{display:block}
+
+/* ─── MOBILE RESPONSIVE ─── */
+@media(max-width:768px){
+  .mob-menu-btn{display:flex;align-items:center;justify-content:center}
+  body{overflow-y:auto}
+  .layout{flex-direction:column;height:auto;overflow:visible}
+  .sidebar{position:fixed;top:0;left:-290px;bottom:0;z-index:300;width:280px;transition:left .25s cubic-bezier(.4,0,.2,1);overflow-y:auto}
+  .sidebar.mob-open{left:0;box-shadow:6px 0 40px rgba(0,0,0,.7)}
+  .main{padding:14px 14px 90px;height:auto;overflow-y:visible}
+  .navbar{padding:0 12px;gap:10px}
+  .navbar-title{font-size:15px}
+  .btn.btn-sm{font-size:12px;padding:7px 11px}
+
+  .daily-grid{grid-template-columns:1fr}
+  .breakdown-grid{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:1fr}
+  .notes-grid{grid-template-columns:1fr}
+  .projects-grid{grid-template-columns:1fr}
+  .ms-grid{grid-template-columns:1fr}
+  .vb-grid{grid-template-columns:1fr;padding:14px}
+  .vb-header{padding:18px 14px 14px}
+  .vb-mission{font-size:16px}
+  .cards-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .stat-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+
+  .tabs{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
+  .tab{padding:7px 11px;font-size:12px;flex-shrink:0}
+
+  .modal{width:96vw;max-height:88vh;padding:20px 16px;border-radius:16px}
+  .frow{grid-template-columns:1fr}
+
+  .card{padding:16px 14px}
+  .stat-card{padding:14px 16px}
+  .kpi-card{padding:16px}
+  .kpi-val{font-size:28px}
+  .chart-inner{height:170px}
+
+  .cal-day{min-height:52px;padding:5px 4px}
+  .cal-day-num{font-size:12px}
+  .cal-weekday{font-size:9px;padding:6px 0 4px}
+
+  .welcome{height:auto;padding:48px 16px}
+  .welcome h2{font-size:20px}
+
+  .rv-section{padding:16px 16px}
+
+  .pom-fab{bottom:20px;right:80px}
+  .pom-panel{right:14px;bottom:86px;width:calc(100vw - 28px);max-width:320px}
+  .chat-fab{bottom:20px;right:16px}
+  .chat-panel{right:14px;bottom:86px;width:calc(100vw - 28px)}
+
+  .breakdown-cat{flex:0 0 90px}
+  .breakdown-amt{flex:0 0 68px;font-size:12px}
+
+  .table-wrap{overflow-x:auto}
+  th{padding:8px 12px;font-size:10px}
+  td{padding:10px 12px;font-size:13px}
+
+  .goal-card{padding:16px 18px}
+  .jrn-card{padding:16px 18px}
+  .ms-card{padding:18px 18px}
+  .proj-head{padding:14px}
+  .proj-body{padding:12px 14px}
+  .table-hdr{padding:13px 14px}
+  .daily-col-hdr{padding:12px 14px}
+  .habit-row,.task-daily-row{padding:10px 14px}
+  .breakdown-row{padding:9px 14px}
+  .rec-row{padding:10px 14px}
+  .task-section-hdr{padding:8px 14px}
+  .task-row{padding:8px 14px}
+  .breakdown-hdr{padding:12px 14px}
+  .star{font-size:28px}
+}
 </style>
 </head>
 <body>
@@ -535,11 +613,13 @@ select.fc{cursor:pointer}
   </div>
 </div>
 <nav class="navbar">
+  <button class="mob-menu-btn" onclick="mobToggleSidebar()" aria-label="Menu">☰</button>
   <div class="navbar-title">Business Dashboard</div>
-  <button class="btn btn-primary btn-sm" onclick="openAddBiz()">+ Přidat business</button>
+  <button class="btn btn-primary btn-sm" onclick="openAddBiz()">+ Přidat</button>
 </nav>
 <div class="layout">
-  <aside class="sidebar">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="mobCloseSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <div class="sidebar-brand-title">Moje businessy</div>
       <div class="sidebar-brand-sub">Správa projektů &amp; financí</div>
@@ -2535,6 +2615,19 @@ function pomStartForTask(taskId,bizId,taskText){
   const row=document.getElementById('pomTaskRow');if(row)row.textContent='📌 '+taskText;
   pomStart();
 }
+
+// ── MOBILE SIDEBAR ────────────────────────────────────────────
+function mobToggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+  document.getElementById('sidebarOverlay').classList.toggle('mob-open');
+}
+function mobCloseSidebar(){
+  document.getElementById('sidebar').classList.remove('mob-open');
+  document.getElementById('sidebarOverlay').classList.remove('mob-open');
+}
+document.getElementById('sidebar').addEventListener('click',function(e){
+  if(window.innerWidth<=768&&e.target.closest('.biz-item,.personal-item'))mobCloseSidebar();
+});
 
 // ── LOCK SCREEN ───────────────────────────────────────────────
 const APP_PASSWORD='Vorle2026'; // ← ZDE ZMĚŇTE HESLO

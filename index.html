@@ -2649,6 +2649,7 @@ function fbPush(){
 async function initFirebase(config){
   try{
     if(fbDb)return;
+    if(typeof firebase==='undefined')throw new Error('SDK nenačteno');
     if(!firebase.apps.length)firebase.initializeApp(config);
     fbDb=firebase.database();
     fbSetStatus('connecting');
@@ -2670,7 +2671,7 @@ async function initFirebase(config){
       S=snap.val();localStorage.setItem(KEY,JSON.stringify(S));renderAll();
     });
     fbSetStatus('ok');
-  }catch(e){console.error('Firebase:',e);fbSetStatus('err');}
+  }catch(e){console.error('Firebase:',e);fbSetStatus('err');document.getElementById('syncLabel').title=e.message;}
 }
 
 function openFbSetup(){

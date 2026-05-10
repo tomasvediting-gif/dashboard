@@ -1,0 +1,2641 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Business Dashboard</title>
+<!-- PWA / iOS -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dashboard">
+<meta name="theme-color" content="#07090f">
+<link id="pwaIcon" rel="apple-touch-icon">
+<link id="pwaManifest" rel="manifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+/* ─── LOCK SCREEN ─── */
+.lock-overlay{position:fixed;inset:0;z-index:99999;background:#07090f;display:flex;align-items:center;justify-content:center;padding:24px;transition:opacity .3s}
+.lock-overlay.unlocking{opacity:0;pointer-events:none}
+.lock-card{background:#0d1117;border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:48px 36px 40px;width:100%;max-width:340px;text-align:center}
+.lock-icon{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,#7c3aed,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 20px}
+.lock-title{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px;background:linear-gradient(135deg,#a78bfa,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.lock-sub{font-size:13px;color:#3d4f6b;margin-bottom:32px}
+.lock-input{width:100%;background:#131a24;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 18px;font-size:16px;color:#eef2ff;font-family:inherit;text-align:center;letter-spacing:2px;outline:none;margin-bottom:14px;transition:border-color .2s}
+.lock-input:focus{border-color:#7c3aed}
+.lock-btn{width:100%;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;transition:opacity .18s}
+.lock-btn:hover{opacity:.88}
+.lock-err{font-size:13px;color:#f87171;margin-top:10px;min-height:18px}
+:root{
+  --bg:#07090f;
+  --surface:#0d1117;
+  --surface2:#131a24;
+  --surface3:#1a2233;
+  --border:rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.13);
+  --text:#eef2ff;
+  --muted:#64748b;
+  --muted2:#3d4f6b;
+  --accent:#7c3aed;
+  --accent2:#6d28d9;
+  --green:#34d399;
+  --green-dim:rgba(52,211,153,0.13);
+  --red:#f87171;
+  --red-dim:rgba(248,113,113,0.13);
+  --yellow:#fbbf24;
+  --radius:14px;
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+
+/* ─── NAVBAR ─── */
+.navbar{
+  display:flex;align-items:center;padding:0 24px;height:58px;
+  background:rgba(13,17,23,0.85);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);gap:14px;
+  position:sticky;top:0;z-index:100;
+}
+.navbar-title{
+  font-weight:800;font-size:17px;letter-spacing:-.6px;flex:1;
+  background:linear-gradient(135deg,#a78bfa 0%,#818cf8 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+
+/* ─── LAYOUT ─── */
+.layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 58px)}
+.sidebar{
+  width:252px;flex-shrink:0;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.sidebar-brand{
+  padding:20px 18px 16px;
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,rgba(124,58,237,.1) 0%,transparent 100%);
+}
+.sidebar-brand-title{
+  font-size:13px;font-weight:700;letter-spacing:-.3px;
+  background:linear-gradient(135deg,#a78bfa,#818cf8);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.sidebar-brand-sub{font-size:11px;color:var(--muted2);margin-top:3px;font-weight:500}
+.sidebar-biz-label{
+  padding:14px 18px 6px;
+  font-size:10px;text-transform:uppercase;letter-spacing:1.5px;
+  color:var(--muted2);font-weight:700;
+}
+.main{flex:1;overflow-y:auto;padding:28px 32px}
+
+/* ─── BIZ LIST ─── */
+.business-list{flex:1;overflow-y:auto;padding:8px}
+.biz-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;border-radius:10px;cursor:pointer;
+  transition:all .18s ease;margin-bottom:2px;
+  border:1px solid transparent;
+}
+.biz-item:hover{background:var(--surface2);border-color:var(--border)}
+.biz-item.active{
+  background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(79,70,229,.1));
+  border-color:rgba(124,58,237,.35);
+}
+.biz-item.active .biz-name{color:var(--text);font-weight:600}
+.biz-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.biz-name{font-size:13.5px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#94a3b8;transition:color .15s}
+.biz-item:hover .biz-name{color:var(--text)}
+.biz-acts{display:none;gap:2px}
+.biz-item:hover .biz-acts{display:flex}
+.biz-acts button{background:none;border:none;color:var(--muted2);cursor:pointer;padding:3px 5px;font-size:11px;border-radius:5px;transition:all .15s}
+.biz-acts button:hover{background:var(--surface3);color:var(--text)}
+
+/* ─── BUTTONS ─── */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:9px 18px;border:none;border-radius:9px;
+  font-size:13.5px;font-weight:600;cursor:pointer;
+  transition:all .18s ease;font-family:inherit;letter-spacing:-.1px;
+}
+.btn-primary{
+  background:linear-gradient(135deg,#7c3aed,#4f46e5);
+  color:#fff;box-shadow:0 2px 14px rgba(124,58,237,.4);
+}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 22px rgba(124,58,237,.55);filter:brightness(1.07)}
+.btn-primary:active{transform:none}
+.btn-sm{padding:6px 13px;font-size:12.5px;border-radius:8px}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border2)}
+.btn-ghost:hover{background:var(--surface2);color:var(--text);border-color:var(--border2)}
+
+/* ─── TABS (pill style) ─── */
+.tabs{
+  display:flex;gap:2px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:12px;padding:4px;
+  margin-bottom:28px;width:fit-content;
+}
+.tab{
+  padding:7px 15px;border:none;background:none;
+  color:var(--muted);font-size:13px;font-weight:500;
+  cursor:pointer;border-radius:9px;
+  transition:all .18s ease;font-family:inherit;white-space:nowrap;
+}
+.tab:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.tab.active{
+  color:#fff;font-weight:600;
+  background:linear-gradient(135deg,#7c3aed,#4f46e5);
+  box-shadow:0 2px 10px rgba(124,58,237,.4);
+}
+
+/* ─── STAT CARDS ─── */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:14px;margin-bottom:22px}
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:22px 20px;
+  transition:all .2s ease;position:relative;overflow:hidden;
+}
+.card::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(124,58,237,.04),transparent 60%);
+  pointer-events:none;
+}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.5);border-color:var(--border2)}
+.card-label{
+  font-size:10.5px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:10px;font-weight:700;
+}
+.card-value{font-size:28px;font-weight:800;letter-spacing:-.8px;line-height:1}
+.card-value.green{
+  background:linear-gradient(135deg,#34d399,#10b981);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.card-value.red{
+  background:linear-gradient(135deg,#f87171,#dc2626);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.card-sub{font-size:11.5px;color:var(--muted);margin-top:5px}
+
+/* ─── TABLE ─── */
+.table-wrap{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;margin-bottom:22px;
+}
+.table-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px;border-bottom:1px solid var(--border);
+}
+.table-hdr h3{font-size:14px;font-weight:700;letter-spacing:-.2px}
+table{width:100%;border-collapse:collapse}
+th{
+  padding:10px 18px;text-align:left;font-size:10.5px;
+  color:var(--muted2);text-transform:uppercase;letter-spacing:.9px;font-weight:700;
+  border-bottom:1px solid var(--border);background:var(--surface2);
+}
+td{padding:12px 18px;font-size:13.5px;border-bottom:1px solid var(--border);color:#94a3b8}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02);color:var(--text)}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.badge-income{background:var(--green-dim);color:var(--green)}
+.badge-expense{background:var(--red-dim);color:var(--red)}
+.tr{text-align:right}
+
+/* ─── PROJECTS ─── */
+.projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.proj-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;
+  transition:all .2s ease;
+}
+.proj-card:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.5);border-color:var(--border2)}
+.proj-head{padding:18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px}
+.proj-title{font-weight:700;font-size:14.5px;flex:1;letter-spacing:-.2px}
+.proj-body{padding:16px 18px}
+.p-status{font-size:10.5px;padding:4px 10px;border-radius:20px;font-weight:700;white-space:nowrap;letter-spacing:.4px}
+.s-todo{background:rgba(100,116,139,.18);color:#94a3b8}
+.s-progress{background:rgba(124,58,237,.2);color:#a78bfa}
+.s-done{background:var(--green-dim);color:var(--green)}
+.task-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.task-row:last-child{border-bottom:none}
+.task-row input[type=checkbox]{accent-color:#7c3aed;width:15px;height:15px;cursor:pointer}
+.task-done{text-decoration:line-through;color:var(--muted)}
+.deadline{font-size:11.5px;color:var(--muted);margin-top:3px}
+.deadline.late{color:var(--red)}
+
+/* ─── KPI ─── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.kpi-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:22px;
+  transition:all .2s ease;
+}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.5);border-color:var(--border2)}
+.kpi-name{font-size:10.5px;color:var(--muted);margin-bottom:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.kpi-val{font-size:36px;font-weight:800;margin-bottom:4px;letter-spacing:-1.5px;line-height:1}
+.kpi-tgt{font-size:12px;color:var(--muted);margin-bottom:14px}
+.prog{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.kpi-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px}
+
+/* ─── NOTES ─── */
+.notes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.note-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:18px;cursor:pointer;
+  transition:all .2s ease;
+}
+.note-card:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.5);border-color:rgba(124,58,237,.4)}
+.note-title{font-weight:700;margin-bottom:8px;font-size:14px;letter-spacing:-.2px}
+.note-body{font-size:13px;color:var(--muted);white-space:pre-wrap;max-height:100px;overflow:hidden;line-height:1.65}
+.note-date{font-size:11px;color:var(--muted2);margin-top:12px;font-weight:500}
+
+/* ─── CHARTS ─── */
+.chart-box{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:22px;margin-bottom:22px;
+}
+.chart-inner{position:relative;height:220px}
+.sec-title{font-size:13.5px;font-weight:700;margin-bottom:14px;letter-spacing:-.2px;color:#94a3b8}
+
+/* ─── MODAL ─── */
+.modal-ov{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);
+  display:flex;align-items:center;justify-content:center;
+  z-index:1000;backdrop-filter:blur(10px);
+  animation:fadein .15s ease;
+}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.modal{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:18px;padding:28px;
+  width:480px;max-width:95vw;max-height:85vh;overflow-y:auto;
+  animation:slideup .2s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 28px 80px rgba(0,0,0,.7);
+}
+@keyframes slideup{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+.modal-title{font-size:18px;font-weight:800;margin-bottom:22px;letter-spacing:-.4px}
+.fg{margin-bottom:18px}
+.fg label{display:block;font-size:10.5px;color:var(--muted);margin-bottom:7px;font-weight:700;text-transform:uppercase;letter-spacing:.7px}
+.fc{
+  width:100%;padding:10px 14px;background:var(--surface2);
+  border:1px solid var(--border2);border-radius:10px;
+  color:var(--text);font-size:14px;transition:all .18s;font-family:inherit;
+}
+.fc:focus{outline:none;border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.18)}
+textarea.fc{resize:vertical;min-height:80px}
+select.fc{cursor:pointer}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.m-acts{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+.swatches{display:flex;gap:9px;flex-wrap:wrap}
+.swatch{
+  width:30px;height:30px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;transition:all .18s;
+}
+.swatch:hover{transform:scale(1.18)}
+.swatch.sel{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.25)}
+
+/* ─── EMPTY ─── */
+.empty{text-align:center;padding:56px 24px;color:var(--muted)}
+.empty .ico{font-size:44px;margin-bottom:14px;display:block}
+.empty p{font-size:15px;margin-bottom:18px}
+
+/* ─── WELCOME ─── */
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;gap:14px}
+.welcome h2{font-size:24px;font-weight:800;letter-spacing:-.6px}
+.welcome p{color:var(--muted);font-size:15px}
+
+/* ─── ICON BTNS ─── */
+.delbtn{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:12px;padding:4px 7px;border-radius:6px;transition:all .15s}
+.delbtn:hover{color:var(--red);background:var(--red-dim)}
+.editbtn{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:12px;padding:4px 7px;border-radius:6px;transition:all .15s}
+.editbtn:hover{color:#a78bfa;background:rgba(124,58,237,.15)}
+
+/* ─── CALENDAR ─── */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.cal-nav-title{font-size:17px;font-weight:800;letter-spacing:-.4px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-weekday{text-align:center;font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;padding:8px 0 6px;letter-spacing:.8px}
+.cal-day{min-height:70px;border-radius:10px;padding:8px 7px;cursor:pointer;transition:all .15s ease;background:var(--surface2);border:1px solid var(--border);display:flex;flex-direction:column}
+.cal-day:hover{background:var(--surface3);border-color:var(--border2)}
+.cal-day.today{border-color:rgba(124,58,237,.55);background:rgba(124,58,237,.09)}
+.cal-day.selected{border-color:#7c3aed;background:rgba(124,58,237,.22);box-shadow:inset 0 0 0 1px rgba(124,58,237,.3)}
+.cal-day.empty{background:transparent;border-color:transparent;cursor:default}
+.cal-day-num{font-size:13px;font-weight:600;color:var(--muted)}
+.cal-day.today .cal-day-num{color:#a78bfa;font-weight:800}
+.cal-day.selected .cal-day-num{color:#fff;font-weight:800}
+.cal-dots{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
+.cal-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+/* ─── DAILY ─── */
+.daily-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.daily-col{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.daily-col-hdr{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.daily-col-title{font-size:14px;font-weight:700;letter-spacing:-.2px}
+.habit-row{display:flex;align-items:center;gap:10px;padding:11px 18px;border-bottom:1px solid var(--border);transition:background .12s}
+.habit-row:last-child{border-bottom:none}
+.habit-row:hover{background:var(--surface2)}
+.streak{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(251,191,36,.15);color:var(--yellow);white-space:nowrap}
+.task-daily-row{display:flex;align-items:center;gap:10px;padding:11px 18px;border-bottom:1px solid var(--border);transition:background .12s}
+.task-daily-row:last-child{border-bottom:none}
+.task-daily-row:hover{background:var(--surface2)}
+/* ─── HABIT HISTORY GRID ─── */
+.habit-grid{overflow-x:auto;padding:0 18px 14px}
+.habit-grid table{border-collapse:collapse}
+.habit-grid th{font-size:10px;color:var(--muted2);text-align:center;padding:3px 2px;font-weight:700;min-width:22px}
+.habit-grid td{text-align:center;padding:2px 1px;vertical-align:middle}
+.hg-name{text-align:left!important;font-size:12px;color:var(--muted);padding-right:10px!important;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hg-dot{width:18px;height:18px;border-radius:4px;display:inline-block}
+.hg-pct{font-size:10px;font-weight:700}
+/* ─── TASK SECTIONS ─── */
+.task-section{border-bottom:1px solid var(--border)}
+.task-section:last-child{border-bottom:none}
+.task-section-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:var(--surface2)}
+.task-section-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+.task-cnt{font-size:11px;background:var(--surface3);color:var(--muted);padding:2px 8px;border-radius:20px;font-weight:600}
+.task-cnt.done-all{background:var(--green-dim);color:var(--green)}
+/* ─── PERSONAL ITEM ─── */
+.personal-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;transition:all .18s ease;margin-bottom:2px;border:1px solid transparent}
+.personal-item:hover{background:var(--surface2);border-color:var(--border)}
+.personal-item.active{background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(79,70,229,.1));border-color:rgba(124,58,237,.35)}
+.sidebar-sep{padding:12px 16px 5px;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted2);font-weight:700}
+/* ─── BREAKDOWN ─── */
+.breakdown-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px}
+.breakdown-col{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.breakdown-hdr{padding:14px 18px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;letter-spacing:-.1px;background:var(--surface2);display:flex;justify-content:space-between;align-items:center}
+.breakdown-total{font-size:13px;font-weight:700}
+.breakdown-row{display:flex;align-items:center;padding:10px 18px;border-bottom:1px solid var(--border);gap:10px;font-size:13px}
+.breakdown-row:last-child{border-bottom:none}
+.breakdown-cat{flex:0 0 120px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.breakdown-bar-wrap{flex:1;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.breakdown-bar{height:100%;border-radius:3px}
+.breakdown-amt{font-size:12.5px;font-weight:600;text-align:right;flex:0 0 90px}
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--border2)}
+/* ─── VISION BOARD ─── */
+.vb-page{min-height:100%}
+.vb-header{padding:32px 32px 20px;border-bottom:1px solid var(--border)}
+.vb-mission{width:100%;background:transparent;border:none;outline:none;font-family:inherit;font-size:19px;font-weight:600;color:var(--text);resize:none;line-height:1.5;caret-color:var(--accent)}
+.vb-mission::placeholder{color:var(--muted2)}
+.vb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;padding:24px 32px}
+.vb-card{border-radius:20px;overflow:hidden;position:relative;aspect-ratio:3/4;background:var(--surface2);border:1px solid var(--border);transition:transform .22s,box-shadow .22s;cursor:default}
+.vb-card:hover{transform:translateY(-5px);box-shadow:0 20px 50px rgba(0,0,0,.55)}
+.vb-img{width:100%;height:100%;object-fit:cover;display:block}
+.vb-placeholder{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.vb-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.45) 55%,transparent 100%);padding:22px 18px 18px}
+.vb-card-title{font-size:15px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:8px}
+.vb-card-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vb-cat{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;color:#fff;letter-spacing:.3px}
+.vb-status{font-size:11px;color:rgba(255,255,255,.65);font-weight:500}
+.vb-actions{position:absolute;top:12px;right:12px;display:flex;gap:6px;opacity:0;transition:opacity .18s}
+.vb-card:hover .vb-actions{opacity:1}
+.vb-btn{width:34px;height:34px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;background:rgba(0,0,0,.65);backdrop-filter:blur(10px);color:#fff;transition:background .15s}
+.vb-btn:hover{background:rgba(0,0,0,.9)}
+.vb-add-card{border:2px dashed var(--border2);background:transparent;border-radius:20px;aspect-ratio:3/4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:border-color .18s,background .18s}
+.vb-add-card:hover{border-color:var(--accent);background:rgba(124,58,237,.06)}
+/* ─── JOURNAL ─── */
+.jrn-grid{display:grid;gap:14px}
+.jrn-card{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:20px 24px;cursor:pointer;transition:box-shadow .18s,transform .18s;position:relative}
+.jrn-card:hover{box-shadow:0 6px 24px rgba(0,0,0,.3);transform:translateY(-2px)}
+.jrn-card-date{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.jrn-card-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+.jrn-card-snip{font-size:13px;color:var(--muted);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5}
+/* ─── STARS ─── */
+.star-row{display:flex;gap:2px;align-items:center}
+.star{font-size:24px;cursor:pointer;opacity:.25;transition:opacity .1s,transform .1s;line-height:1;background:none;border:none;padding:2px}
+.star.on,.star:hover{opacity:1;transform:scale(1.15)}
+/* ─── WEEKLY REVIEW ─── */
+.rv-section{background:var(--surface2);border:1px solid var(--border);border-radius:18px;padding:22px 26px;margin-bottom:14px}
+.rv-q{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
+.rv-ta{width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:inherit;font-size:13.5px;resize:vertical;min-height:80px;outline:none;line-height:1.6}
+.rv-ta:focus{border-color:var(--accent)}
+.rv-past{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:10px}
+.rv-past-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:13px;font-weight:600}
+/* ─── POMODORO ─── */
+.pom-fab{position:fixed;bottom:24px;right:90px;z-index:1000;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#f97316);border:none;cursor:pointer;font-size:20px;box-shadow:0 4px 24px rgba(239,68,68,.4);transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center;color:#fff}
+.pom-fab:hover{transform:scale(1.08)}
+.pom-fab.pom-on{animation:pom-pulse 2s infinite}
+@keyframes pom-pulse{0%,100%{box-shadow:0 4px 20px rgba(239,68,68,.4)}50%{box-shadow:0 4px 36px rgba(239,68,68,.85)}}
+.pom-panel{position:fixed;bottom:90px;right:90px;z-index:999;width:232px;border-radius:18px;background:var(--surface2);border:1px solid var(--border2);box-shadow:0 20px 60px rgba(0,0,0,.6);padding:20px 18px;text-align:center;transition:opacity .18s,transform .18s}
+.pom-panel.hidden{opacity:0;pointer-events:none;transform:translateY(12px)}
+.pom-time{font-size:52px;font-weight:800;letter-spacing:-2px;line-height:1;font-variant-numeric:tabular-nums}
+.pom-type{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin:6px 0 12px}
+.pom-task{font-size:12px;color:var(--muted);margin-bottom:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pom-btns{display:flex;gap:6px;justify-content:center;margin-bottom:10px}
+.pom-btn{padding:7px 12px;border-radius:9px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s}
+.pom-btn-red{background:var(--red-dim);color:var(--red)}
+.pom-btn-red:hover{background:var(--red);color:#fff}
+.pom-btn-acc{background:rgba(124,58,237,.15);color:var(--accent)}
+.pom-btn-acc:hover{background:var(--accent);color:#fff}
+.pom-btn-muted{background:var(--surface3);color:var(--muted)}
+.pom-btn-muted:hover{background:var(--border2);color:var(--text)}
+.pom-sessions{font-size:12px;color:var(--muted);letter-spacing:.5px}
+/* ─── MINDSET ─── */
+.ms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
+.ms-card{background:var(--surface2);border:1px solid var(--border);border-radius:18px;padding:22px 24px;position:relative;transition:box-shadow .2s,transform .2s}
+.ms-card:hover{box-shadow:0 8px 32px rgba(0,0,0,.35);transform:translateY(-2px)}
+.ms-card-top{display:flex;align-items:flex-start;gap:14px;margin-bottom:18px}
+.ms-emoji{font-size:34px;flex-shrink:0;line-height:1}
+.ms-title{font-size:15px;font-weight:700;color:var(--text);line-height:1.35;padding-top:4px}
+.ms-sols{list-style:none;display:flex;flex-direction:column;gap:9px}
+.ms-sol{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);line-height:1.45}
+.ms-num{flex-shrink:0;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;margin-top:1px}
+.ms-card-acts{position:absolute;top:14px;right:14px;display:flex;gap:5px;opacity:0;transition:opacity .15s}
+.ms-card:hover .ms-card-acts{opacity:1}
+.ms-add{border:2px dashed var(--border2);background:transparent;border-radius:18px;padding:22px 24px;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:180px}
+.ms-add:hover{border-color:var(--accent);background:rgba(124,58,237,.06)}
+/* ─── GOALS ─── */
+.goal-card{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:20px 24px;margin-bottom:12px}
+.goal-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:10px}
+.goal-name{font-weight:700;font-size:15px}
+.goal-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.prog-wrap{height:8px;background:var(--surface3);border-radius:4px;overflow:hidden;margin:10px 0 8px}
+.prog-bar{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.goal-foot{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted)}
+.goal-pct{font-weight:800;font-size:16px}
+/* ─── STATS ─── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:14px;margin-bottom:24px}
+.stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:20px 22px}
+.stat-lbl{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+.stat-val{font-size:26px;font-weight:800;letter-spacing:-.5px;line-height:1}
+.stat-sub{font-size:12px;margin-top:6px;display:flex;align-items:center;gap:4px}
+.trend-up{color:var(--green)}
+.trend-dn{color:var(--red)}
+/* ─── RECURRING ─── */
+.rec-row{display:flex;align-items:center;padding:12px 18px;border-bottom:1px solid var(--border);gap:12px;font-size:13px}
+.rec-row:last-child{border-bottom:none}
+.rec-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--surface3);color:var(--muted);white-space:nowrap}
+/* ─── CHAT ─── */
+.chat-fab{
+  position:fixed;bottom:24px;right:24px;z-index:1000;
+  width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(135deg,#7c3aed,#818cf8);
+  border:none;cursor:pointer;font-size:22px;
+  box-shadow:0 4px 24px rgba(124,58,237,0.5);
+  transition:transform .2s,box-shadow .2s;
+  display:flex;align-items:center;justify-content:center;color:#fff;
+}
+.chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 32px rgba(124,58,237,0.7)}
+.chat-panel{
+  position:fixed;bottom:90px;right:24px;z-index:999;
+  width:370px;border-radius:18px;
+  background:var(--surface2);border:1px solid var(--border2);
+  box-shadow:0 20px 60px rgba(0,0,0,0.6);
+  display:flex;flex-direction:column;
+  transition:opacity .18s,transform .18s;
+}
+.chat-panel.hidden{opacity:0;pointer-events:none;transform:translateY(14px)}
+.chat-hdr{
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;
+  border-radius:18px 18px 0 0;background:var(--surface3);
+}
+.chat-msgs{
+  flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:9px;
+  min-height:180px;max-height:310px;
+}
+.chat-msg{
+  max-width:88%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.55;
+  word-break:break-word;
+}
+.chat-msg.user{
+  background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;
+}
+.chat-msg.bot{
+  background:var(--surface3);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;
+}
+.chat-input-row{
+  padding:12px 14px;border-top:1px solid var(--border);
+  display:flex;gap:8px;border-radius:0 0 18px 18px;
+}
+.chat-input-row input{
+  flex:1;background:var(--surface3);border:1px solid var(--border2);border-radius:10px;
+  padding:9px 13px;color:var(--text);font-size:13px;outline:none;font-family:inherit;
+}
+.chat-input-row input:focus{border-color:var(--accent)}
+.chat-input-row input::placeholder{color:var(--muted)}
+.chat-send{
+  background:var(--accent);border:none;border-radius:10px;padding:9px 15px;
+  color:#fff;font-size:15px;cursor:pointer;font-weight:700;transition:background .15s;
+}
+.chat-send:hover{background:var(--accent2)}
+</style>
+</head>
+<body>
+<!-- ── LOCK SCREEN ── -->
+<div class="lock-overlay" id="lockOverlay">
+  <div class="lock-card">
+    <div class="lock-icon">📊</div>
+    <div class="lock-title">Business Dashboard</div>
+    <div class="lock-sub">Soukromá aplikace pana Vorla</div>
+    <input class="lock-input" id="lockInput" type="password" placeholder="Heslo" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')lockTry()">
+    <button class="lock-btn" onclick="lockTry()">Vstoupit</button>
+    <div class="lock-err" id="lockErr"></div>
+  </div>
+</div>
+<nav class="navbar">
+  <div class="navbar-title">Business Dashboard</div>
+  <button class="btn btn-primary btn-sm" onclick="openAddBiz()">+ Přidat business</button>
+</nav>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-title">Moje businessy</div>
+      <div class="sidebar-brand-sub">Správa projektů &amp; financí</div>
+    </div>
+    <div class="business-list" id="bizList"></div>
+  </aside>
+  <main class="main" id="mainContent">
+    <div class="welcome">
+      <div style="font-size:52px;filter:drop-shadow(0 0 20px rgba(124,58,237,.4))">📊</div>
+      <h2>Vítej v Business Dashboardu</h2>
+      <p>Přidej svůj první business tlačítkem nahoře vpravo.</p>
+      <button class="btn btn-primary" onclick="openAddBiz()" style="margin-top:8px">+ Přidat první business</button>
+    </div>
+  </main>
+</div>
+<div id="modals"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────
+const KEY='biz_dash_v1';
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY))||{};if(!d.businesses)d.businesses=[];if(!d.global)d.global={events:[],habits:[],dailyTasks:[]};return d}catch{return{businesses:[],global:{events:[],habits:[],dailyTasks:[]}}}}
+function save(){localStorage.setItem(KEY,JSON.stringify(S))}
+let S=load(),activeBiz=null,activeTab='overview';
+let calYear=new Date().getFullYear(),calMonth=new Date().getMonth(),calSelDay=null,globalView=false,welcomeView=true,statsView=false,visionView=false,mindsetView=false,journalView=false,reviewView=false;
+let _wTimer=null;
+function getBiz(id){return S.businesses.find(b=>b.id===id)}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+const COLORS=['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316','#84cc16'];
+
+// ── SIDEBAR ───────────────────────────────────────────────────
+function renderSidebar(){
+  const el=document.getElementById('bizList');
+  const personal=`<div style="padding:8px 8px 0">
+    <div class="personal-item${welcomeView?' active':''}" onclick="selWelcome()">
+      <span style="font-size:15px">🏠</span>
+      <span class="biz-name" style="${welcomeView?'color:var(--text);font-weight:600':''}">Vítejte</span>
+    </div>
+    <div class="personal-item${visionView?' active':''}" onclick="selVisionBoard()">
+      <span style="font-size:15px">🎨</span>
+      <span class="biz-name" style="${visionView?'color:var(--text);font-weight:600':''}">Vision Board</span>
+    </div>
+    <div class="personal-item${statsView?' active':''}" onclick="selStats()">
+      <span style="font-size:15px">📊</span>
+      <span class="biz-name" style="${statsView?'color:var(--text);font-weight:600':''}">Statistiky</span>
+    </div>
+    <div class="personal-item${mindsetView?' active':''}" onclick="selMindset()">
+      <span style="font-size:15px">🧠</span>
+      <span class="biz-name" style="${mindsetView?'color:var(--text);font-weight:600':''}">Mindset</span>
+    </div>
+    <div class="personal-item${journalView?' active':''}" onclick="selJournal()">
+      <span style="font-size:15px">📓</span>
+      <span class="biz-name" style="${journalView?'color:var(--text);font-weight:600':''}">Deník</span>
+    </div>
+    <div class="personal-item${reviewView?' active':''}" onclick="selReview()">
+      <span style="font-size:15px">🏆</span>
+      <span class="biz-name" style="${reviewView?'color:var(--text);font-weight:600':''}">Týdenní review</span>
+    </div>
+    <div class="personal-item${(!welcomeView&&!statsView&&!visionView&&!mindsetView&&!journalView&&!reviewView&&globalView)?' active':''}" onclick="selGlobal()">
+      <span style="font-size:15px">📋</span>
+      <span class="biz-name" style="${(!welcomeView&&!statsView&&!visionView&&!mindsetView&&!journalView&&!reviewView&&globalView)?'color:var(--text);font-weight:600':''}">Osobní přehled</span>
+    </div>
+  </div>
+  <div class="sidebar-sep">Businessy</div>`;
+  const bizHTML=S.businesses.length
+    ?S.businesses.map(b=>`
+      <div class="biz-item${(!globalView&&b.id===activeBiz)?' active':''}" onclick="selBiz('${b.id}')">
+        <div class="biz-dot" style="background:${b.color}"></div>
+        <span class="biz-name">${esc(b.name)}</span>
+        <div class="biz-acts">
+          <button onclick="event.stopPropagation();openEditBiz('${b.id}')" title="Upravit">✏️</button>
+          <button onclick="event.stopPropagation();delBiz('${b.id}')" title="Smazat">🗑️</button>
+        </div>
+      </div>`).join('')
+    :`<div style="padding:10px 16px;font-size:13px;color:var(--muted2)">Žádné businessy zatím.</div>`;
+  el.innerHTML=personal+bizHTML;
+}
+
+function _resetViews(){welcomeView=false;statsView=false;visionView=false;mindsetView=false;journalView=false;reviewView=false;globalView=false}
+function selBiz(id){_resetViews();activeBiz=id;activeTab='overview';renderSidebar();renderMain()}
+function selGlobal(){_resetViews();globalView=true;activeBiz=null;calSelDay=null;renderSidebar();renderGlobal()}
+function selWelcome(){if(_wTimer){clearInterval(_wTimer);_wTimer=null}_resetViews();welcomeView=true;activeBiz=null;renderSidebar();renderWelcome()}
+function selStats(){_resetViews();statsView=true;activeBiz=null;renderSidebar();renderStats()}
+function selVisionBoard(){_resetViews();visionView=true;activeBiz=null;renderSidebar();renderVisionBoard()}
+function selMindset(){_resetViews();mindsetView=true;activeBiz=null;renderSidebar();renderMindset()}
+function selJournal(){_resetViews();journalView=true;activeBiz=null;renderSidebar();renderJournal()}
+function selReview(){_resetViews();reviewView=true;activeBiz=null;renderSidebar();renderReview()}
+function _src(){return globalView?S.global:getBiz(activeBiz)}
+
+function renderGlobal(){
+  const el=document.getElementById('mainContent');
+  const g=S.global;
+  const td=today();
+  const doneH=(g.habits||[]).filter(h=>(h.completedDates||[]).includes(td)).length;
+  const dayT=(g.dailyTasks||[]).filter(t=>t.date===td);
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:26px;padding-bottom:22px;border-bottom:1px solid var(--border)">
+      <div style="width:44px;height:44px;border-radius:12px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📋</div>
+      <div>
+        <h1 style="font-size:21px;font-weight:800;letter-spacing:-.5px">Osobní přehled</h1>
+        <div style="font-size:13px;color:var(--muted);margin-top:2px">${td} &nbsp;·&nbsp; ${doneH}/${(g.habits||[]).length} habits &nbsp;·&nbsp; ${dayT.filter(t=>t.done).length}/${dayT.length} úkolů</div>
+      </div>
+    </div>
+    ${tabCalendar(g)}
+    <div style="margin-top:8px">${tabDaily(g)}</div>`;
+}
+function delBiz(id){
+  if(!confirm('Smazat tento business a všechna data?'))return;
+  S.businesses=S.businesses.filter(b=>b.id!==id);
+  if(activeBiz===id)activeBiz=S.businesses[0]?.id||null;
+  save();renderSidebar();renderMain()
+}
+
+// ── MAIN ──────────────────────────────────────────────────────
+function renderMain(){
+  if(welcomeView){renderWelcome();return}
+  if(statsView){renderStats();return}
+  if(visionView){renderVisionBoard();return}
+  if(mindsetView){renderMindset();return}
+  if(journalView){renderJournal();return}
+  if(reviewView){renderReview();return}
+  const el=document.getElementById('mainContent');
+  if(!activeBiz){el.innerHTML='<div class="welcome"><div style="font-size:48px">📊</div><h2>Vítej v Business Dashboardu</h2><p>Přidej svůj první business tlačítkem nahoře vpravo.</p></div>';return}
+  const b=getBiz(activeBiz);if(!b)return;
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:26px;padding-bottom:22px;border-bottom:1px solid var(--border)">
+      <div style="width:44px;height:44px;border-radius:12px;background:${b.color}22;border:1px solid ${b.color}44;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:${b.color};flex-shrink:0">${esc(b.name.charAt(0).toUpperCase())}</div>
+      <div>
+        <h1 style="font-size:21px;font-weight:800;letter-spacing:-.5px">${esc(b.name)}</h1>
+        ${b.desc?`<div style="font-size:13px;color:var(--muted);margin-top:2px">${esc(b.desc)}</div>`:''}
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab${activeTab==='overview'?' active':''}" onclick="swTab('overview')">📊 Přehled</button>
+      <button class="tab${activeTab==='finance'?' active':''}" onclick="swTab('finance')">💰 Finance</button>
+      <button class="tab${activeTab==='projects'?' active':''}" onclick="swTab('projects')">📁 Projekty</button>
+      <button class="tab${activeTab==='kpis'?' active':''}" onclick="swTab('kpis')">🎯 KPI</button>
+      <button class="tab${activeTab==='notes'?' active':''}" onclick="swTab('notes')">📝 Poznámky</button>
+      <button class="tab${activeTab==='calendar'?' active':''}" onclick="swTab('calendar')">📅 Kalendář</button>
+      <button class="tab${activeTab==='daily'?' active':''}" onclick="swTab('daily')">✅ Denně</button>
+      <button class="tab${activeTab==='goals'?' active':''}" onclick="swTab('goals')">🎯 Cíle</button>
+    </div>
+    <div id="tabContent"></div>`;
+  renderTab()
+}
+
+function swTab(t){activeTab=t;renderMain()}
+
+function renderTab(){
+  const b=getBiz(activeBiz),el=document.getElementById('tabContent');
+  if(activeTab==='overview'){el.innerHTML=tabOverview(b);drawOverview(b)}
+  else if(activeTab==='finance'){el.innerHTML=tabFinance(b);drawFinance(b)}
+  else if(activeTab==='projects')el.innerHTML=tabProjects(b)
+  else if(activeTab==='kpis')el.innerHTML=tabKPIs(b)
+  else if(activeTab==='notes')el.innerHTML=tabNotes(b)
+  else if(activeTab==='calendar')el.innerHTML=tabCalendar(b)
+  else if(activeTab==='daily')el.innerHTML=tabDaily(b)
+  else if(activeTab==='goals')el.innerHTML=tabGoals(b)
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function fmoney(n,cur){return new Intl.NumberFormat('cs-CZ',{style:'currency',currency:cur||'CZK',maximumFractionDigits:0}).format(n||0)}
+function last6(){
+  const r=[],d=new Date();
+  for(let i=5;i>=0;i--){const m=new Date(d.getFullYear(),d.getMonth()-i,1);r.push(m.toISOString().slice(0,7))}
+  return r
+}
+function today(){return new Date().toISOString().slice(0,10)}
+
+// ── OVERVIEW ──────────────────────────────────────────────────
+function tabOverview(b){
+  const txs=(b.finance||{}).transactions||[];
+  const inc=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const cur=b.currency||'CZK';
+  const projs=b.projects||[];
+  const doneP=projs.filter(p=>p.status==='done').length;
+  const allT=projs.reduce((s,p)=>s+(p.tasks||[]).length,0);
+  const doneT=projs.reduce((s,p)=>s+(p.tasks||[]).filter(t=>t.done).length,0);
+  const recent=[...txs].sort((a,c)=>new Date(c.date)-new Date(a.date)).slice(0,5);
+  return`
+    <div class="cards-grid">
+      <div class="card"><div class="card-label">Příjmy celkem</div><div class="card-value green">${fmoney(inc,cur)}</div></div>
+      <div class="card"><div class="card-label">Výdaje celkem</div><div class="card-value red">${fmoney(exp,cur)}</div></div>
+      <div class="card"><div class="card-label">Čistý zisk</div><div class="card-value ${inc-exp>=0?'green':'red'}">${fmoney(inc-exp,cur)}</div></div>
+      <div class="card"><div class="card-label">Projekty</div><div class="card-value">${projs.length}</div><div class="card-sub">${doneP} dokončeno</div></div>
+      <div class="card"><div class="card-label">Úkoly</div><div class="card-value">${doneT}/${allT}</div><div class="card-sub">splněno</div></div>
+    </div>
+    <div class="chart-box"><div class="sec-title">Příjmy vs. Výdaje (posledních 6 měsíců)</div><div class="chart-inner"><canvas id="ovChart"></canvas></div></div>
+    ${recent.length?`
+    <div class="table-wrap">
+      <div class="table-hdr"><h3>Poslední transakce</h3></div>
+      <table><thead><tr><th>Datum</th><th>Typ</th><th>Kategorie</th><th>Poznámka</th><th class="tr">Částka</th></tr></thead>
+      <tbody>${recent.map(t=>`<tr>
+        <td>${t.date}</td>
+        <td><span class="badge badge-${t.type}">${t.type==='income'?'Příjem':'Výdaj'}</span></td>
+        <td>${esc(t.category||'—')}</td><td>${esc(t.note||'—')}</td>
+        <td class="tr" style="color:${t.type==='income'?'var(--green)':'var(--red)'}">${t.type==='income'?'+':'-'}${fmoney(t.amount,cur)}</td>
+      </tr>`).join('')}</tbody></table></div>`:''}
+  `
+}
+
+function drawOverview(b){
+  const ctx=document.getElementById('ovChart');if(!ctx)return;
+  const txs=(b.finance||{}).transactions||[],m=last6();
+  new Chart(ctx,{type:'bar',data:{labels:m,datasets:[
+    {label:'Příjmy',data:m.map(mo=>txs.filter(t=>t.type==='income'&&t.date?.startsWith(mo)).reduce((s,t)=>s+t.amount,0)),backgroundColor:'rgba(16,185,129,.7)',borderRadius:6},
+    {label:'Výdaje',data:m.map(mo=>txs.filter(t=>t.type==='expense'&&t.date?.startsWith(mo)).reduce((s,t)=>s+t.amount,0)),backgroundColor:'rgba(239,68,68,.6)',borderRadius:6}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e2e8f0'}}},
+    scales:{x:{ticks:{color:'#718096'},grid:{color:'#2d3146'}},y:{ticks:{color:'#718096'},grid:{color:'#2d3146'}}}}})
+}
+
+// ── FINANCE ───────────────────────────────────────────────────
+function tabFinance(b){
+  const txs=[...(b.finance||{}).transactions||[]].sort((a,c)=>new Date(c.date)-new Date(a.date));
+  const cur=b.currency||'CZK';
+  const inc=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const recs=b.finance?.recurring||[];
+  return`
+    <div class="cards-grid">
+      <div class="card"><div class="card-label">Příjmy</div><div class="card-value green">${fmoney(inc,cur)}</div></div>
+      <div class="card"><div class="card-label">Výdaje</div><div class="card-value red">${fmoney(exp,cur)}</div></div>
+      <div class="card"><div class="card-label">Zisk</div><div class="card-value ${inc-exp>=0?'green':'red'}">${fmoney(inc-exp,cur)}</div></div>
+    </div>
+    <div class="chart-box"><div class="sec-title">Měsíční vývoj</div><div class="chart-inner"><canvas id="finChart"></canvas></div></div>
+    ${finBreakdown(txs,cur)}
+    <div class="table-wrap">
+      <div class="table-hdr"><h3>Transakce (${txs.length})</h3><button class="btn btn-primary btn-sm" onclick="openAddTx()">+ Přidat</button></div>
+      ${txs.length?`<table><thead><tr><th>Datum</th><th>Typ</th><th>Kategorie</th><th>Poznámka</th><th class="tr">Částka</th><th></th></tr></thead>
+      <tbody>${txs.map(t=>`<tr>
+        <td>${t.date}</td>
+        <td><span class="badge badge-${t.type}">${t.type==='income'?'Příjem':'Výdaj'}</span></td>
+        <td>${esc(t.category||'—')}</td><td>${esc(t.note||'—')}</td>
+        <td class="tr" style="color:${t.type==='income'?'var(--green)':'var(--red)'}">${t.type==='income'?'+':'-'}${fmoney(t.amount,cur)}</td>
+        <td style="display:flex;gap:4px;justify-content:flex-end"><button class="delbtn" onclick="openEditTx('${t.id}')" title="Upravit">✏️</button><button class="delbtn" onclick="delTx('${t.id}')" title="Smazat">✕</button></td>
+      </tr>`).join('')}</tbody></table>`
+      :`<div class="empty"><div class="ico">💸</div><p>Žádné transakce zatím.</p><button class="btn btn-primary" onclick="openAddTx()">+ První transakce</button></div>`}
+    </div>
+    ${recSection(recs,cur)}`
+}
+
+function drawFinance(b){
+  const ctx=document.getElementById('finChart');if(!ctx)return;
+  const txs=(b.finance||{}).transactions||[],m=last6();
+  const inc=m.map(mo=>txs.filter(t=>t.type==='income'&&t.date?.startsWith(mo)).reduce((s,t)=>s+t.amount,0));
+  const exp=m.map(mo=>txs.filter(t=>t.type==='expense'&&t.date?.startsWith(mo)).reduce((s,t)=>s+t.amount,0));
+  new Chart(ctx,{type:'line',data:{labels:m,datasets:[
+    {label:'Příjmy',data:inc,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',tension:.4,fill:false,pointRadius:4},
+    {label:'Výdaje',data:exp,borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.1)',tension:.4,fill:false,pointRadius:4},
+    {label:'Zisk',data:m.map((_,i)=>inc[i]-exp[i]),borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.12)',tension:.4,fill:true,pointRadius:4}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e2e8f0'}}},
+    scales:{x:{ticks:{color:'#718096'},grid:{color:'#2d3146'}},y:{ticks:{color:'#718096'},grid:{color:'#2d3146'}}}}})
+}
+
+// ── PROJECTS ──────────────────────────────────────────────────
+function tabProjects(b){
+  const ps=b.projects||[];
+  return`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="sec-title" style="margin:0">Projekty (${ps.length})</div>
+      <button class="btn btn-primary btn-sm" onclick="openAddProj()">+ Nový projekt</button>
+    </div>
+    ${ps.length?`<div class="projects-grid">${ps.map(p=>projCard(p)).join('')}</div>`
+    :`<div class="empty"><div class="ico">📁</div><p>Žádné projekty zatím.</p><button class="btn btn-primary" onclick="openAddProj()">+ Vytvořit projekt</button></div>`}`
+}
+
+function projCard(p){
+  const tasks=p.tasks||[],done=tasks.filter(t=>t.done).length,pct=tasks.length?Math.round(done/tasks.length*100):0;
+  const sl={todo:'s-todo',progress:'s-progress',done:'s-done'}[p.status]||'s-todo';
+  const sl2={todo:'Čeká',progress:'Probíhá',done:'Hotovo'}[p.status]||'';
+  const late=p.deadline&&p.deadline<today()&&p.status!=='done';
+  return`
+    <div class="proj-card">
+      <div class="proj-head">
+        <div style="flex:1">
+          <div class="proj-title">${esc(p.name)}</div>
+          ${p.deadline?`<div class="deadline${late?' late':''}">${late?'⚠️':'⏰'} ${p.deadline}${late?' — po termínu':''}</div>`:''}
+        </div>
+        <span class="p-status ${sl}">${sl2}</span>
+      </div>
+      <div class="proj-body">
+        ${p.desc?`<div style="font-size:13px;color:var(--muted);margin-bottom:12px">${esc(p.desc)}</div>`:''}
+        ${tasks.length?`
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px"><span>Úkoly</span><span>${done}/${tasks.length} (${pct}%)</span></div>
+            <div class="prog"><div class="prog-fill" style="width:${pct}%;background:${pct===100?'var(--green)':'var(--accent)'}"></div></div>
+          </div>
+          ${tasks.map(t=>`<div class="task-row">
+            <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${p.id}','${t.id}',this.checked)">
+            <span class="${t.done?'task-done':''}">${esc(t.text)}</span>
+            <button class="delbtn" style="margin-left:auto" onclick="delTask('${p.id}','${t.id}')">✕</button>
+          </div>`).join('')}`
+        :`<div style="font-size:13px;color:var(--muted)">Žádné úkoly.</div>`}
+        <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="openEditProj('${p.id}')">✏️ Upravit</button>
+          <button class="btn btn-ghost btn-sm" onclick="addTask('${p.id}')">+ Úkol</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="delProj('${p.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`
+}
+
+// ── KPIs ──────────────────────────────────────────────────────
+function tabKPIs(b){
+  const ks=b.kpis||[];
+  return`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="sec-title" style="margin:0">KPI metriky (${ks.length})</div>
+      <button class="btn btn-primary btn-sm" onclick="openAddKPI()">+ Nové KPI</button>
+    </div>
+    ${ks.length?`<div class="kpi-grid">${ks.map(k=>kpiCard(k)).join('')}</div>`
+    :`<div class="empty"><div class="ico">🎯</div><p>Žádné KPI metriky zatím.</p><button class="btn btn-primary" onclick="openAddKPI()">+ Přidat KPI</button></div>`}`
+}
+
+function kpiCard(k){
+  const pct=k.target?Math.min(100,Math.round(k.value/k.target*100)):null;
+  const col=pct===null?'var(--accent)':pct>=100?'var(--green)':pct>=60?'var(--yellow)':'var(--red)';
+  return`
+    <div class="kpi-card">
+      <div class="kpi-hdr">
+        <div class="kpi-name">${esc(k.name)}</div>
+        <div style="display:flex;gap:4px">
+          <button class="editbtn" onclick="openEditKPI('${k.id}')">✏️</button>
+          <button class="delbtn" onclick="delKPI('${k.id}')">✕</button>
+        </div>
+      </div>
+      <div class="kpi-val" style="color:${col}">${k.value}<span style="font-size:15px;font-weight:400;color:var(--muted)"> ${esc(k.unit||'')}</span></div>
+      ${k.target?`<div class="kpi-tgt">Cíl: ${k.target} ${esc(k.unit||'')}</div>`:'<div class="kpi-tgt" style="height:18px"></div>'}
+      ${pct!==null?`<div class="prog"><div class="prog-fill" style="width:${pct}%;background:${col}"></div></div>`:''}
+    </div>`
+}
+
+// ── NOTES ─────────────────────────────────────────────────────
+function tabNotes(b){
+  const ns=[...(b.notes||[])].sort((a,c)=>new Date(c.date)-new Date(a.date));
+  return`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="sec-title" style="margin:0">Poznámky (${ns.length})</div>
+      <button class="btn btn-primary btn-sm" onclick="openAddNote()">+ Nová poznámka</button>
+    </div>
+    ${ns.length?`<div class="notes-grid">${ns.map(n=>`
+      <div class="note-card" onclick="openEditNote('${n.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="note-title">${esc(n.title||'Bez názvu')}</div>
+          <button class="delbtn" onclick="event.stopPropagation();delNote('${n.id}')">✕</button>
+        </div>
+        <div class="note-body">${esc(n.content||'')}</div>
+        <div class="note-date">${n.date||''}</div>
+      </div>`).join('')}</div>`
+    :`<div class="empty"><div class="ico">📝</div><p>Žádné poznámky zatím.</p><button class="btn btn-primary" onclick="openAddNote()">+ Napsat poznámku</button></div>`}`
+}
+
+// ── MODAL ─────────────────────────────────────────────────────
+function showModal(html){
+  const ov=document.createElement('div');ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal">${html}</div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)closeModal()});
+  document.getElementById('modals').innerHTML='';
+  document.getElementById('modals').appendChild(ov)
+}
+function closeModal(){document.getElementById('modals').innerHTML=''}
+
+function swatchRow(sel){return COLORS.map((c,i)=>`<div class="swatch${(sel?c===sel:i===0)?' sel':''}" style="background:${c}" data-color="${c}" onclick="pickColor(this)"></div>`).join('')}
+function pickColor(el){document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel'));el.classList.add('sel')}
+function getColor(){return document.querySelector('.swatch.sel')?.dataset.color||COLORS[0]}
+
+// Business modals
+function openAddBiz(){
+  showModal(`<div class="modal-title">Přidat business</div>
+    <div class="fg"><label>Název *</label><input class="fc" id="bName" placeholder="Název businessu" autofocus></div>
+    <div class="fg"><label>Popis</label><input class="fc" id="bDesc" placeholder="Volitelný popis"></div>
+    <div class="fg"><label>Měna</label><select class="fc" id="bCur"><option>CZK</option><option>EUR</option><option>USD</option><option>GBP</option></select></div>
+    <div class="fg"><label>Barva</label><div class="swatches">${swatchRow()}</div></div>
+    <div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveBiz()">Vytvořit</button></div>`)
+}
+
+function openEditBiz(id){
+  const b=getBiz(id);
+  showModal(`<div class="modal-title">Upravit business</div>
+    <input type="hidden" id="bId" value="${id}">
+    <div class="fg"><label>Název *</label><input class="fc" id="bName" value="${esc(b.name)}" autofocus></div>
+    <div class="fg"><label>Popis</label><input class="fc" id="bDesc" value="${esc(b.desc||'')}"></div>
+    <div class="fg"><label>Měna</label><select class="fc" id="bCur"><option${b.currency==='CZK'?' selected':''}>CZK</option><option${b.currency==='EUR'?' selected':''}>EUR</option><option${b.currency==='USD'?' selected':''}>USD</option><option${b.currency==='GBP'?' selected':''}>GBP</option></select></div>
+    <div class="fg"><label>Barva</label><div class="swatches">${swatchRow(b.color)}</div></div>
+    <div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveBiz(true)">Uložit</button></div>`)
+}
+
+function saveBiz(edit){
+  const name=document.getElementById('bName').value.trim();
+  if(!name){alert('Zadej název.');return}
+  const color=getColor();
+  if(edit){
+    const b=getBiz(document.getElementById('bId').value);
+    b.name=name;b.desc=document.getElementById('bDesc').value.trim();
+    b.currency=document.getElementById('bCur').value;b.color=color;
+  }else{
+    const nb={id:uid(),name,desc:document.getElementById('bDesc').value.trim(),
+      currency:document.getElementById('bCur').value,color,
+      finance:{transactions:[],recurring:[]},projects:[],kpis:[],notes:[],events:[],habits:[],dailyTasks:[],goals:[]};
+    S.businesses.push(nb);activeBiz=nb.id;welcomeView=false;
+  }
+  save();closeModal();renderSidebar();renderMain()
+}
+
+// Transaction modals
+function openAddTx(){
+  showModal(`<div class="modal-title">Přidat transakci</div>
+    <div class="fg"><label>Typ *</label><select class="fc" id="tType"><option value="income">💚 Příjem</option><option value="expense">🔴 Výdaj</option></select></div>
+    <div class="frow">
+      <div class="fg"><label>Částka *</label><input class="fc" id="tAmt" type="number" min="0" step="0.01" placeholder="0.00" autofocus></div>
+      <div class="fg"><label>Datum *</label><input class="fc" id="tDate" type="date" value="${today()}"></div>
+    </div>
+    <div class="fg"><label>Kategorie</label><input class="fc" id="tCat" placeholder="Marketing, Pronájem, Prodej..."></div>
+    <div class="fg"><label>Poznámka</label><input class="fc" id="tNote" placeholder="Volitelná poznámka"></div>
+    <div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveTx()">Přidat</button></div>`)
+}
+
+function saveTx(){
+  const amt=parseFloat(document.getElementById('tAmt').value);
+  if(!amt||amt<=0){alert('Zadej platnou částku.');return}
+  const b=getBiz(activeBiz);
+  if(!b.finance)b.finance={transactions:[]};
+  b.finance.transactions.push({id:uid(),type:document.getElementById('tType').value,amount:amt,
+    date:document.getElementById('tDate').value,category:document.getElementById('tCat').value.trim(),
+    note:document.getElementById('tNote').value.trim()});
+  save();closeModal();renderMain()
+}
+
+function delTx(id){
+  const b=getBiz(activeBiz);b.finance.transactions=b.finance.transactions.filter(t=>t.id!==id);
+  save();renderMain()
+}
+function openEditTx(id){
+  const b=getBiz(activeBiz),t=b.finance.transactions.find(x=>x.id===id);
+  if(!t)return;
+  showModal(`<div class="modal-title">Upravit transakci</div>
+    <input type="hidden" id="eTxId" value="${id}">
+    <div class="fg"><label>Typ *</label><select class="fc" id="eTxType"><option value="income"${t.type==='income'?' selected':''}>💚 Příjem</option><option value="expense"${t.type==='expense'?' selected':''}>🔴 Výdaj</option></select></div>
+    <div class="frow">
+      <div class="fg"><label>Částka *</label><input class="fc" id="eTxAmt" type="number" min="0" step="0.01" value="${t.amount}" autofocus></div>
+      <div class="fg"><label>Datum *</label><input class="fc" id="eTxDate" type="date" value="${t.date}"></div>
+    </div>
+    <div class="fg"><label>Kategorie</label><input class="fc" id="eTxCat" value="${esc(t.category||'')}"></div>
+    <div class="fg"><label>Poznámka</label><input class="fc" id="eTxNote" value="${esc(t.note||'')}"></div>
+    <div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveEditTx()">Uložit</button></div>`)
+}
+function saveEditTx(){
+  const id=document.getElementById('eTxId').value;
+  const amt=parseFloat(document.getElementById('eTxAmt').value);
+  if(!amt||amt<=0){alert('Zadej platnou částku.');return}
+  const b=getBiz(activeBiz),t=b.finance.transactions.find(x=>x.id===id);
+  if(!t)return;
+  t.type=document.getElementById('eTxType').value;
+  t.amount=amt;
+  t.date=document.getElementById('eTxDate').value;
+  t.category=document.getElementById('eTxCat').value.trim();
+  t.note=document.getElementById('eTxNote').value.trim();
+  save();closeModal();renderMain()
+}
+
+// Project modals
+function openAddProj(){
+  showModal(`<div class="modal-title">Nový projekt</div>
+    <div class="fg"><label>Název *</label><input class="fc" id="pName" placeholder="Název projektu" autofocus></div>
+    <div class="fg"><label>Popis</label><textarea class="fc" id="pDesc" placeholder="Popis projektu..."></textarea></div>
+    <div class="frow">
+      <div class="fg"><label>Status</label><select class="fc" id="pSt"><option value="todo">Čeká</option><option value="progress">Probíhá</option><option value="done">Hotovo</option></select></div>
+      <div class="fg"><label>Termín</label><input class="fc" id="pDl" type="date"></div>
+    </div>
+    <div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveProj()">Vytvořit</button></div>`)
+}
+
+function openEditProj(pid){
+  const b=getBiz(activeBiz),p=b.projects.find(x=>x.id===pid);
+  showModal(`<div class="modal-title">Upravit projekt</div>
+    <input type="hidden" id="pId" value="${pid}">
+    <div class="fg"><label>Název *</label><input class="fc" id="pName" value="${esc(p.name)}" autofocus></div>
+    <div class="fg"><label>Popis</label><textarea class="fc" id="pDesc">${esc(p.desc||'')}</textarea></div>
+    <div class="frow">
+      <div class="fg"><label>Status</label><select class="fc" id="pSt">
+        <option value="todo"${p.status==='todo'?' selected':''}>Čeká</option>
+        <option value="progress"${p.status==='progress'?' selected':''}>Probíhá</option>
+        <option value="done"${p.status==='done'?' selected':''}>Hotovo</option>
+      </select></div>
+      <div class="fg"><label>Termín</label><input class="fc" id="pDl" type="date" value="${p.deadline||''}"></div>
+    </div>
+    <div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveProj(true)">Uložit</button></div>`)
+}
+
+function saveProj(edit){
+  const name=document.getElementById('pName').value.trim();
+  if(!name){alert('Zadej název projektu.');return}
+  const b=getBiz(activeBiz);
+  if(edit){
+    const p=b.projects.find(x=>x.id===document.getElementById('pId').value);
+    p.name=name;p.desc=document.getElementById('pDesc').value.trim();
+    p.status=document.getElementById('pSt').value;p.deadline=document.getElementById('pDl').value;
+  }else{
+    b.projects.push({id:uid(),name,desc:document.getElementById('pDesc').value.trim(),
+      status:document.getElementById('pSt').value,deadline:document.getElementById('pDl').value,tasks:[]});
+  }
+  save();closeModal();renderMain()
+}
+
+function delProj(pid){
+  if(!confirm('Smazat projekt?'))return;
+  const b=getBiz(activeBiz);b.projects=b.projects.filter(p=>p.id!==pid);
+  save();renderMain()
+}
+
+function addTask(pid){
+  const text=prompt('Název úkolu:');if(!text?.trim())return;
+  const b=getBiz(activeBiz),p=b.projects.find(x=>x.id===pid);
+  p.tasks.push({id:uid(),text:text.trim(),done:false});
+  save();renderMain()
+}
+
+function toggleTask(pid,tid,done){
+  const b=getBiz(activeBiz),p=b.projects.find(x=>x.id===pid),t=p.tasks.find(x=>x.id===tid);
+  t.done=done;save();renderMain()
+}
+
+function delTask(pid,tid){
+  const b=getBiz(activeBiz),p=b.projects.find(x=>x.id===pid);
+  p.tasks=p.tasks.filter(t=>t.id!==tid);save();renderMain()
+}
+
+// KPI modals
+function openAddKPI(){
+  showModal(`<div class="modal-title">Nové KPI</div>
+    <div class="fg"><label>Název *</label><input class="fc" id="kName" placeholder="např. Počet zákazníků" autofocus></div>
+    <div class="frow">
+      <div class="fg"><label>Aktuální hodnota</label><input class="fc" id="kVal" type="number" step="any" placeholder="0"></div>
+      <div class="fg"><label>Cíl (volitelný)</label><input class="fc" id="kTgt" type="number" step="any" placeholder="—"></div>
+    </div>
+    <div class="fg"><label>Jednotka</label><input class="fc" id="kUnit" placeholder="Kč, %, ks, uživatelé..."></div>
+    <div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveKPI()">Přidat</button></div>`)
+}
+
+function openEditKPI(kid){
+  const b=getBiz(activeBiz),k=b.kpis.find(x=>x.id===kid);
+  showModal(`<div class="modal-title">Upravit KPI</div>
+    <input type="hidden" id="kId" value="${kid}">
+    <div class="fg"><label>Název *</label><input class="fc" id="kName" value="${esc(k.name)}" autofocus></div>
+    <div class="frow">
+      <div class="fg"><label>Aktuální hodnota</label><input class="fc" id="kVal" type="number" step="any" value="${k.value}"></div>
+      <div class="fg"><label>Cíl</label><input class="fc" id="kTgt" type="number" step="any" value="${k.target||''}"></div>
+    </div>
+    <div class="fg"><label>Jednotka</label><input class="fc" id="kUnit" value="${esc(k.unit||'')}"></div>
+    <div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveKPI(true)">Uložit</button></div>`)
+}
+
+function saveKPI(edit){
+  const name=document.getElementById('kName').value.trim();
+  if(!name){alert('Zadej název KPI.');return}
+  const b=getBiz(activeBiz),val=parseFloat(document.getElementById('kVal').value)||0,
+    target=parseFloat(document.getElementById('kTgt').value)||null,unit=document.getElementById('kUnit').value.trim();
+  if(edit){const k=b.kpis.find(x=>x.id===document.getElementById('kId').value);k.name=name;k.value=val;k.target=target;k.unit=unit}
+  else b.kpis.push({id:uid(),name,value:val,target,unit});
+  save();closeModal();renderMain()
+}
+
+function delKPI(kid){const b=getBiz(activeBiz);b.kpis=b.kpis.filter(k=>k.id!==kid);save();renderMain()}
+
+// Note modals
+function openAddNote(){
+  showModal(`<div class="modal-title">Nová poznámka</div>
+    <div class="fg"><label>Název</label><input class="fc" id="nTitle" placeholder="Název poznámky" autofocus></div>
+    <div class="fg"><label>Obsah</label><textarea class="fc" id="nContent" style="min-height:180px" placeholder="Napiš si sem cokoli..."></textarea></div>
+    <div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveNote()">Uložit</button></div>`)
+}
+
+function openEditNote(nid){
+  const b=getBiz(activeBiz),n=b.notes.find(x=>x.id===nid);
+  showModal(`<div class="modal-title">Upravit poznámku</div>
+    <input type="hidden" id="nId" value="${nid}">
+    <div class="fg"><label>Název</label><input class="fc" id="nTitle" value="${esc(n.title||'')}" autofocus></div>
+    <div class="fg"><label>Obsah</label><textarea class="fc" id="nContent" style="min-height:180px">${esc(n.content||'')}</textarea></div>
+    <div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveNote(true)">Uložit</button></div>`)
+}
+
+function saveNote(edit){
+  const b=getBiz(activeBiz),td=today();
+  if(edit){const n=b.notes.find(x=>x.id===document.getElementById('nId').value);
+    n.title=document.getElementById('nTitle').value.trim();n.content=document.getElementById('nContent').value;n.date=td}
+  else b.notes.push({id:uid(),title:document.getElementById('nTitle').value.trim(),content:document.getElementById('nContent').value,date:td});
+  save();closeModal();renderMain()
+}
+
+function delNote(nid){const b=getBiz(activeBiz);b.notes=b.notes.filter(n=>n.id!==nid);save();renderMain()}
+
+// ── FINANCE BREAKDOWN ─────────────────────────────────────────
+function finBreakdown(txs,cur){
+  if(!txs.length)return'';
+  const byInc={},byExp={};
+  txs.forEach(t=>{
+    const cat=t.category||'Ostatní';
+    if(t.type==='income'){byInc[cat]=(byInc[cat]||0)+t.amount}
+    else{byExp[cat]=(byExp[cat]||0)+t.amount}
+  });
+  const sortDesc=obj=>Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+  const incRows=sortDesc(byInc),expRows=sortDesc(byExp);
+  const maxInc=incRows[0]?incRows[0][1]:1,maxExp=expRows[0]?expRows[0][1]:1;
+  const totalInc=incRows.reduce((s,[,v])=>s+v,0);
+  const totalExp=expRows.reduce((s,[,v])=>s+v,0);
+  const makeRows=(rows,max,color)=>rows.map(([cat,amt])=>`
+    <div class="breakdown-row">
+      <div class="breakdown-cat" title="${esc(cat)}">${esc(cat)}</div>
+      <div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:${Math.round(amt/max*100)}%;background:${color}"></div></div>
+      <div class="breakdown-amt" style="color:${color}">${fmoney(amt,cur)}</div>
+    </div>`).join('');
+  return`<div class="breakdown-grid">
+    <div class="breakdown-col">
+      <div class="breakdown-hdr"><span>📥 Příjmy podle zdroje</span><span class="breakdown-total" style="color:var(--green)">${fmoney(totalInc,cur)}</span></div>
+      ${incRows.length?makeRows(incRows,maxInc,'var(--green)'):`<div class="empty" style="padding:24px"><div class="ico" style="font-size:28px">📥</div><p style="font-size:13px">Žádné příjmy.</p></div>`}
+    </div>
+    <div class="breakdown-col">
+      <div class="breakdown-hdr"><span>📤 Výdaje podle kategorie</span><span class="breakdown-total" style="color:var(--red)">${fmoney(totalExp,cur)}</span></div>
+      ${expRows.length?makeRows(expRows,maxExp,'var(--red)'):`<div class="empty" style="padding:24px"><div class="ico" style="font-size:28px">📤</div><p style="font-size:13px">Žádné výdaje.</p></div>`}
+    </div>
+  </div>`;
+}
+
+// ── CALENDAR ──────────────────────────────────────────────────
+const CZ_MONTHS=['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
+const CZ_DAYS=['Po','Út','St','Čt','Pá','So','Ne'];
+function _calR(){if(globalView)renderGlobal();else{const b=getBiz(activeBiz);if(b)document.getElementById('tabContent').innerHTML=tabCalendar(b)}}
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--}calSelDay=null;_calR()}
+function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++}calSelDay=null;_calR()}
+function calSel(d){calSelDay=calSelDay===d?null:d;_calR()}
+
+function tabCalendar(b){
+  const events=b.events||[];
+  const td=today();
+  const firstDay=(new Date(calYear,calMonth,1).getDay()+6)%7;
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const cells=[];
+  for(let i=0;i<firstDay;i++)cells.push(null);
+  for(let d=1;d<=daysInMonth;d++)cells.push(d);
+  while(cells.length%7!==0)cells.push(null);
+  const mStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}`;
+  const selStr=calSelDay?`${mStr}-${String(calSelDay).padStart(2,'0')}`:null;
+  const displayEvs=(selStr?events.filter(e=>e.date===selStr):events.filter(e=>e.date?.startsWith(mStr)))
+    .sort((a,c)=>a.date.localeCompare(c.date)||(a.time||'').localeCompare(c.time||''));
+  const gridHTML=CZ_DAYS.map(w=>`<div class="cal-weekday">${w}</div>`).join('')+
+    cells.map(d=>{
+      if(!d)return`<div class="cal-day empty"></div>`;
+      const dStr=`${mStr}-${String(d).padStart(2,'0')}`;
+      const evs=events.filter(e=>e.date===dStr);
+      return`<div class="cal-day${dStr===td?' today':''}${d===calSelDay?' selected':''}" onclick="calSel(${d})">
+        <span class="cal-day-num">${d}</span>
+        <div class="cal-dots">${evs.slice(0,5).map(e=>`<div class="cal-dot" style="background:${e.color||'#7c3aed'}"></div>`).join('')}</div>
+      </div>`;
+    }).join('');
+  const preDate=selStr?`'${selStr}'`:'null';
+  return`<div class="chart-box" style="margin-bottom:18px">
+    <div class="cal-nav">
+      <button class="btn btn-ghost btn-sm" onclick="calPrev()">‹ Zpět</button>
+      <div class="cal-nav-title">${CZ_MONTHS[calMonth]} ${calYear}</div>
+      <button class="btn btn-ghost btn-sm" onclick="calNext()">Dál ›</button>
+    </div>
+    <div class="cal-grid">${gridHTML}</div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div class="sec-title" style="margin:0">${selStr?`Události — ${selStr}`:`${CZ_MONTHS[calMonth]} (${displayEvs.length} událostí)`}</div>
+    <button class="btn btn-primary btn-sm" onclick="openAddEvent(${preDate})">+ Přidat událost</button>
+  </div>
+  <div class="table-wrap">
+    ${displayEvs.length?`<table>
+      <thead><tr><th>Datum</th><th>Čas</th><th>Název</th><th>Popis</th><th></th></tr></thead>
+      <tbody>${displayEvs.map(e=>`<tr>
+        <td><div style="display:flex;align-items:center;gap:7px"><div style="width:8px;height:8px;border-radius:50%;background:${e.color||'#7c3aed'};flex-shrink:0"></div>${e.date}</div></td>
+        <td style="color:var(--muted)">${e.time||'—'}</td>
+        <td style="font-weight:600;color:var(--text)">${esc(e.title)}</td>
+        <td style="color:var(--muted)">${esc(e.desc||'—')}</td>
+        <td><button class="delbtn" onclick="delEvent('${e.id}')">✕</button></td>
+      </tr>`).join('')}</tbody>
+    </table>`
+    :`<div class="empty" style="padding:36px"><div class="ico">📅</div><p>${selStr?'Žádné události v tento den.':'Žádné události tento měsíc.'}</p><button class="btn btn-primary btn-sm" onclick="openAddEvent(${preDate})">+ Přidat</button></div>`}
+  </div>`;
+}
+
+function openAddEvent(preDate){
+  showModal(`<div class="modal-title">Nová událost</div>
+    <div class="fg"><label>Název *</label><input class="fc" id="evTitle" placeholder="Název události" autofocus></div>
+    <div class="frow">
+      <div class="fg"><label>Datum *</label><input class="fc" id="evDate" type="date" value="${preDate||today()}"></div>
+      <div class="fg"><label>Čas</label><input class="fc" id="evTime" type="time"></div>
+    </div>
+    <div class="fg"><label>Popis</label><textarea class="fc" id="evDesc" placeholder="Volitelný popis..."></textarea></div>
+    <div class="fg"><label>Barva</label><div class="swatches">${swatchRow()}</div></div>
+    <div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveEvent()">Přidat</button></div>`)
+}
+function saveEvent(){
+  const title=document.getElementById('evTitle').value.trim();
+  if(!title){alert('Zadej název události.');return}
+  const b=_src();if(!b.events)b.events=[];
+  b.events.push({id:uid(),title,date:document.getElementById('evDate').value,
+    time:document.getElementById('evTime').value,
+    desc:document.getElementById('evDesc').value.trim(),color:getColor()});
+  save();closeModal();_calR()
+}
+function delEvent(id){
+  const b=_src();b.events=(b.events||[]).filter(e=>e.id!==id);
+  save();_calR()
+}
+
+// ── DAILY ─────────────────────────────────────────────────────
+function _dailyR(){if(globalView)renderGlobal();else{const b=getBiz(activeBiz);if(b)document.getElementById('tabContent').innerHTML=tabDaily(b)}}
+
+function calcStreak(dates){
+  if(!dates||!dates.length)return 0;
+  const set=new Set(dates);
+  let streak=0,cur=new Date(today());
+  while(set.has(cur.toISOString().slice(0,10))){
+    streak++;cur.setDate(cur.getDate()-1);
+  }
+  return streak;
+}
+
+function sameWeek(a,b){
+  const ws=d=>{const x=new Date(d);x.setDate(x.getDate()-((x.getDay()+6)%7));return x.toISOString().slice(0,10)};
+  return ws(a)===ws(b);
+}
+
+function habitHistory(habits){
+  if(!habits.length)return'';
+  const HB_START='2026-05-09';
+  const days=[];let cur=new Date(HB_START);
+  const now=new Date();now.setHours(0,0,0,0);
+  while(cur<=now){days.push(cur.toISOString().slice(0,10));const n=new Date(cur);n.setDate(cur.getDate()+1);cur=n;}
+  const headers=days.map(d=>{
+    const dd=new Date(d),wd=['N','Po','Út','St','Čt','Pá','So'][dd.getDay()];
+    const isMonday=dd.getDay()===1;
+    return'<th title="'+d+'" style="'+(isMonday?'border-left:1px solid var(--border2)':'')+'"><div>'+dd.getDate()+'</div><div style="font-size:9px;color:var(--muted2)">'+wd+'</div></th>';
+  }).join('');
+  const rows=habits.map(h=>{
+    const cells=days.map((day,i)=>{
+      const done=(h.completedDates||[]).includes(day);
+      const isMonday=new Date(day).getDay()===1;
+      return'<td style="'+(isMonday&&i>0?'border-left:1px solid var(--border2)':'')+'"><div class="hg-dot" style="background:'+(done?'var(--green)':'var(--surface3)')+'"></div></td>';
+    }).join('');
+    return'<tr><td class="hg-name" title="'+esc(h.name)+'">'+esc(h.name)+'</td>'+cells+'</tr>';
+  }).join('');
+  const totalDone=habits.reduce((s,h)=>s+(h.completedDates||[]).filter(d=>d>=HB_START).length,0);
+  const totalPossible=habits.length*days.length;
+  const overallPct=totalPossible?Math.round(totalDone/totalPossible*100):0;
+  const pctRow=days.map((day,i)=>{
+    const n=habits.filter(h=>(h.completedDates||[]).includes(day)).length;
+    const pct=Math.round(n/habits.length*100);
+    const col=pct>=80?'var(--green)':pct>=50?'var(--yellow)':pct>0?'var(--red)':'var(--muted2)';
+    const isMonday=new Date(day).getDay()===1;
+    return'<td style="'+(isMonday&&i>0?'border-left:1px solid var(--border2)':'')+'"><span class="hg-pct" style="color:'+col+'">'+(pct?pct+'%':'')+'</span></td>';
+  }).join('');
+  return'<div style="padding:12px 18px 6px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
+    +'<div style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.8px">📊 Historie od 9. 5. 2026</div>'
+    +'<div style="font-size:12px;color:var(--muted)">Celkem splněno: <b style="color:var(--text)">'+overallPct+'%</b></div>'
+    +'</div>'
+    +'<div class="habit-grid"><table>'
+    +'<thead><tr><th></th>'+headers+'</tr></thead>'
+    +'<tbody>'+rows
+    +'<tr style="border-top:1px solid var(--border)"><td class="hg-name" style="color:var(--muted2);font-weight:700">%</td>'+pctRow+'</tr>'
+    +'</tbody></table></div>';
+}
+
+function tasksCol(allTasks,td,bizId){
+  const dayT=allTasks.filter(t=>(!t.period||t.period==='day')&&t.date===td);
+  const weekT=allTasks.filter(t=>t.period==='week'&&sameWeek(t.date,td));
+  const monthT=allTasks.filter(t=>t.period==='month'&&t.date.slice(0,7)===td.slice(0,7));
+  const sec=(emoji,title,tasks,period)=>{
+    const done=tasks.filter(t=>t.done).length;
+    const allDone=tasks.length>0&&done===tasks.length;
+    const rows=tasks.map(t=>{
+      const pomBtn=t.done?'':'<button title="Spustit Pomodoro" onclick="pomStartForTask(\''+t.id+'\','+JSON.stringify(bizId||null)+',\''+t.text.replace(/'/g,"\\'")+'\')" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:14px;padding:2px 4px;opacity:.7;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.7">▶</button>';
+      return'<div class="task-daily-row">'
+        +'<input type="checkbox" '+(t.done?'checked ':'')+' onchange="toggleDailyTask(\''+t.id+'\',this.checked)" style="accent-color:#7c3aed;width:15px;height:15px;cursor:pointer;flex-shrink:0">'
+        +'<span style="flex:1;font-size:13.5px;'+(t.done?'text-decoration:line-through;color:var(--muted)':'')+'">'+esc(t.text)+'</span>'
+        +pomBtn
+        +'<button class="delbtn" onclick="delDailyTask(\''+t.id+'\')">✕</button>'
+        +'</div>';
+    }).join('');
+    return`<div class="task-section">
+      <div class="task-section-hdr">
+        <div class="task-section-title">${emoji} ${title}<span class="task-cnt${allDone?' done-all':''}">${done}/${tasks.length}</span></div>
+        <button class="btn btn-primary btn-sm" onclick="openAddDailyTask('${period}')">+ Přidat</button>
+      </div>
+      ${tasks.length?`<div>${rows}</div>`:`<div style="padding:10px 18px;font-size:13px;color:var(--muted2)">Žádné úkoly.</div>`}
+    </div>`;
+  };
+  return`<div class="daily-col">
+    <div class="daily-col-hdr"><div class="daily-col-title">✅ Úkoly</div></div>
+    ${sec('📅','Dnes',dayT,'day')}
+    ${sec('📆','Tento týden',weekT,'week')}
+    ${sec('🗓️','Tento měsíc',monthT,'month')}
+  </div>`;
+}
+
+function habitsCol(habits,td){
+  let rows='';
+  habits.forEach(function(h){
+    const done=(h.completedDates||[]).includes(td);
+    const streak=calcStreak(h.completedDates||[]);
+    const streakEl=streak>0
+      ?'<span class="streak">🔥 '+streak+'</span>'
+      :'<span class="streak" style="background:transparent;color:var(--muted2)">🔥 0</span>';
+    rows+='<div class="habit-row">'
+      +'<input type="checkbox" '+(done?'checked ':'')+' onchange="toggleHabit(\''+h.id+'\',this.checked)" style="accent-color:#7c3aed;width:16px;height:16px;cursor:pointer;flex-shrink:0">'
+      +'<span style="flex:1;font-size:14px;font-weight:500;'+(done?'text-decoration:line-through;color:var(--muted)':'')+'">'+esc(h.name)+'</span>'
+      +streakEl
+      +'<button class="delbtn" onclick="delHabit(\''+h.id+'\')">✕</button>'
+      +'</div>';
+  });
+  const body=habits.length
+    ?rows+habitHistory(habits)
+    :'<div class="empty" style="padding:36px 24px"><div class="ico">🔁</div><p>Žádné habits zatím.</p><button class="btn btn-primary btn-sm" onclick="openAddHabit()">+ Přidat habit</button></div>';
+  return '<div class="daily-col">'
+    +'<div class="daily-col-hdr">'
+    +'<div class="daily-col-title">🔁 Daily Habits</div>'
+    +'<button class="btn btn-primary btn-sm" onclick="openAddHabit()">+ Přidat</button>'
+    +'</div>'+body+'</div>';
+}
+function tabDaily(b){
+  const habits=b.habits||[];
+  const td=today();
+  const allTasks=b.dailyTasks||[];
+  const dayT=allTasks.filter(t=>(!t.period||t.period==='day')&&t.date===td);
+  const doneH=habits.filter(h=>(h.completedDates||[]).includes(td)).length;
+  const doneT=dayT.filter(t=>t.done).length;
+  const habPct=habits.length?Math.round(doneH/habits.length*100):0;
+  return`
+    <div style="margin-bottom:20px">
+      <div style="font-size:20px;font-weight:800;letter-spacing:-.5px">Dnešní přehled</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:3px">${td}
+        &nbsp;·&nbsp; <span style="color:${habPct===100&&habits.length?'var(--green)':'inherit'}">${doneH}/${habits.length} habits (${habPct}%)</span>
+        &nbsp;·&nbsp; ${doneT}/${dayT.length} úkolů dnes
+      </div>
+    </div>
+    <div class="daily-grid">
+      ${habitsCol(habits,td)}
+      ${tasksCol(allTasks,td,b.id||null)}
+    </div>`;
+}
+
+function openAddHabit(){
+  showModal(`<div class="modal-title">Nový habit</div>
+    <div class="fg"><label>Název *</label><input class="fc" id="hName" placeholder="Cvičení, Čtení, Meditace..." autofocus></div>
+    <div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveHabit()">Přidat</button></div>`)
+}
+function saveHabit(){
+  const name=document.getElementById('hName').value.trim();
+  if(!name){alert('Zadej název habitu.');return}
+  const b=_src();if(!b.habits)b.habits=[];
+  b.habits.push({id:uid(),name,completedDates:[]});
+  save();closeModal();_dailyR()
+}
+function toggleHabit(hid,done){
+  const b=_src(),h=b.habits.find(x=>x.id===hid),td=today();
+  if(!h.completedDates)h.completedDates=[];
+  if(done){if(!h.completedDates.includes(td))h.completedDates.push(td)}
+  else h.completedDates=h.completedDates.filter(d=>d!==td);
+  save();_dailyR()
+}
+function delHabit(hid){
+  const b=_src();b.habits=(b.habits||[]).filter(h=>h.id!==hid);
+  save();_dailyR()
+}
+function openAddDailyTask(period='day'){
+  const labels={day:'Dnes',week:'Tento týden',month:'Tento měsíc'};
+  showModal(`<div class="modal-title">Nový úkol — ${labels[period]||'Dnes'}</div>
+    <div class="fg"><label>Úkol *</label><input class="fc" id="dtText" placeholder="Co chceš udělat?" autofocus></div>
+    <input type="hidden" id="dtPeriod" value="${period}">
+    <div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveDailyTask()">Přidat</button></div>`)
+}
+function saveDailyTask(){
+  const text=document.getElementById('dtText').value.trim();
+  if(!text){alert('Zadej text úkolu.');return}
+  const period=document.getElementById('dtPeriod')?.value||'day';
+  const b=_src();if(!b.dailyTasks)b.dailyTasks=[];
+  b.dailyTasks.push({id:uid(),text,date:today(),done:false,period});
+  save();closeModal();_dailyR()
+}
+function toggleDailyTask(tid,done){
+  const b=_src(),t=b.dailyTasks.find(x=>x.id===tid);
+  t.done=done;save();_dailyR()
+}
+function delDailyTask(tid){
+  const b=_src();b.dailyTasks=(b.dailyTasks||[]).filter(t=>t.id!==tid);
+  save();_dailyR()
+}
+
+// ── JOURNAL ───────────────────────────────────────────────────
+function initJournal(){if(!S.journal)S.journal=[];}
+function renderJournal(){
+  initJournal();
+  const el=document.getElementById('mainContent');
+  const entries=[...S.journal].sort((a,b)=>b.date.localeCompare(a.date));
+  const q=document.getElementById('jrnSearch')?.value?.toLowerCase()||'';
+  const filtered=q?entries.filter(e=>(e.title+e.content).toLowerCase().includes(q)):entries;
+  let html='<div style="padding:28px 32px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">'
+    +'<div style="flex:1"><div style="font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:4px">📓 DENÍK</div>'
+    +'<div style="font-size:13px;color:var(--muted)">Soukromé zápisky — nikdo jiný je neuvidí</div></div>'
+    +'<button class="btn btn-primary btn-sm" onclick="openAddJrn()">+ Nový zápis</button></div>'
+    +'<div style="padding:16px 32px 8px"><input id="jrnSearch" class="fc" placeholder="🔍 Hledat v zápisech..." style="max-width:340px" oninput="renderJournal()" value="'+esc(q)+'"></div>'
+    +'<div style="padding:8px 32px 32px"><div class="jrn-grid">';
+  if(!filtered.length){
+    html+='<div class="empty" style="margin-top:20px"><div class="ico">📓</div>'
+      +(entries.length?'<p>Nic nenalezeno.</p>':'<p>Zatím žádné zápisky. Napiš svůj první!</p>')
+      +'<button class="btn btn-primary" onclick="openAddJrn()">+ Nový zápis</button></div>';
+  } else {
+    filtered.forEach(e=>{
+      const stars=e.rating?'⭐'.repeat(e.rating):'';
+      html+='<div class="jrn-card" onclick="openEditJrn(\''+e.id+'\')">'
+        +'<div class="jrn-card-date">'+e.date+(stars?' &nbsp;'+stars:'')+'</div>'
+        +'<div class="jrn-card-title">'+esc(e.title||'Bez názvu')+'</div>'
+        +'<div class="jrn-card-snip">'+esc(e.content||'')+'</div>'
+        +'<button class="delbtn" style="position:absolute;top:12px;right:12px;opacity:0;transition:opacity .15s" '
+        +'onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0" '
+        +'onclick="event.stopPropagation();delJrn(\''+e.id+'\')" title="Smazat">✕</button>'
+        +'</div>';
+    });
+  }
+  html+='</div></div>';
+  el.innerHTML=html;
+}
+function openAddJrn(){
+  showModal('<div class="modal-title">Nový zápis</div>'
+    +'<div class="fg"><label>Nadpis</label><input class="fc" id="jTitle" placeholder="Dnešní myšlenky..." autofocus></div>'
+    +'<div class="fg"><label>Obsah *</label><textarea class="fc" id="jContent" rows="8" placeholder="Co se dnes stalo? Co cítím? Na co myslím..."></textarea></div>'
+    +'<div class="fg"><label>Hodnocení dne</label><div class="star-row" id="jStars">'
+    +[1,2,3,4,5].map(i=>'<button class="star" data-v="'+i+'" onclick="setJrnStar('+i+')">⭐</button>').join('')
+    +'</div></div>'
+    +'<input type="hidden" id="jRating" value="0">'
+    +'<div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button>'
+    +'<button class="btn btn-primary" onclick="saveJrn()">Uložit</button></div>');
+}
+function openEditJrn(id){
+  const e=S.journal.find(x=>x.id===id);if(!e)return;
+  showModal('<div class="modal-title">Upravit zápis</div>'
+    +'<input type="hidden" id="jEditId" value="'+id+'">'
+    +'<div class="fg"><label>Nadpis</label><input class="fc" id="jTitle" value="'+esc(e.title||'')+'" autofocus></div>'
+    +'<div class="fg"><label>Obsah</label><textarea class="fc" id="jContent" rows="8">'+esc(e.content||'')+'</textarea></div>'
+    +'<div class="fg"><label>Hodnocení dne</label><div class="star-row" id="jStars">'
+    +[1,2,3,4,5].map(i=>'<button class="star '+(i<=(e.rating||0)?'on':'')+'" data-v="'+i+'" onclick="setJrnStar('+i+')">⭐</button>').join('')
+    +'</div></div>'
+    +'<input type="hidden" id="jRating" value="'+(e.rating||0)+'">'
+    +'<div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button>'
+    +'<button class="btn btn-primary" onclick="saveJrn()">Uložit</button></div>');
+}
+function setJrnStar(v){
+  document.getElementById('jRating').value=v;
+  document.querySelectorAll('#jStars .star').forEach((s,i)=>s.classList.toggle('on',i<v));
+}
+function saveJrn(){
+  const content=document.getElementById('jContent').value.trim();
+  if(!content){alert('Napiš obsah zápisku.');return}
+  const editId=document.getElementById('jEditId')?.value;
+  const rating=parseInt(document.getElementById('jRating').value)||0;
+  const title=document.getElementById('jTitle').value.trim();
+  if(editId){
+    const e=S.journal.find(x=>x.id===editId);
+    if(e){e.title=title;e.content=content;e.rating=rating}
+  } else {
+    S.journal.push({id:uid(),date:today(),title,content,rating});
+    if(rating){initDayRatings();if(!S.dayRatings.find(r=>r.date===today()))S.dayRatings.push({date:today(),rating,note:title||''})}
+  }
+  save();closeModal();renderJournal();
+}
+function delJrn(id){
+  if(!confirm('Smazat tento zápis?'))return;
+  S.journal=S.journal.filter(x=>x.id!==id);
+  save();renderJournal();
+}
+
+// ── DAY RATING ────────────────────────────────────────────────
+const DR_START='2026-05-09';
+function initDayRatings(){if(!S.dayRatings)S.dayRatings=[];}
+function drAllDays(){
+  const days=[];let d=new Date(DR_START);
+  const now=new Date();now.setHours(0,0,0,0);
+  while(d<=now){days.push(d.toISOString().slice(0,10));const n=new Date(d);n.setDate(d.getDate()+1);d=n;}
+  return days;
+}
+function dayRatingWidget(){
+  initDayRatings();
+  const td=today();
+  const rated=S.dayRatings.find(r=>r.date===td);
+
+  // Lifetime history bars from DR_START
+  const allDays=drAllDays();
+  const ratedAll=S.dayRatings.filter(r=>r.date>=DR_START);
+  const avg=ratedAll.length?Math.round(ratedAll.reduce((s,r)=>s+r.rating,0)/ratedAll.length*10)/10:0;
+  const best=ratedAll.length?Math.max(...ratedAll.map(r=>r.rating)):0;
+
+  let bars='';
+  allDays.forEach((day,i)=>{
+    const r=S.dayRatings.find(x=>x.date===day);
+    const h=r?Math.round(r.rating/5*36):2;
+    const col=r?(r.rating>=4?'var(--green)':r.rating>=3?'var(--yellow)':'var(--red)'):'var(--surface3)';
+    const isMonday=new Date(day).getDay()===1;
+    const ml=i>0&&isMonday?'margin-left:5px;':'';
+    const lbl=isMonday||i===0?day.slice(8)+'.':'';
+    const tooltip=day+(r?' — '+r.rating+'/5'+(r.note?' ('+r.note+')':''):'');
+    bars+='<div style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;width:12px;'+ml+'">'
+      +'<div style="width:10px;height:36px;display:flex;align-items:flex-end">'
+      +'<div title="'+tooltip+'" style="width:10px;height:'+h+'px;background:'+col+';border-radius:2px 2px 0 0;cursor:default"></div></div>'
+      +'<div style="font-size:8px;color:var(--muted2);line-height:1">'+lbl+'</div>'
+      +'</div>';
+  });
+
+  const histHtml='<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+    +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)">📊 Historie od 9. 5. 2026</div>'
+    +(ratedAll.length?'<div style="font-size:12px;color:var(--muted)">⌀ <b style="color:var(--text)">'+avg+'</b> · nejlepší <b style="color:var(--green)">'+best+'</b> · <b style="color:var(--text)">'+ratedAll.length+'</b> dní</div>':'')
+    +'</div>'
+    +'<div style="overflow-x:auto;padding-bottom:6px">'
+    +'<div style="display:inline-flex;gap:1px;align-items:flex-end;min-width:100%">'+bars+'</div>'
+    +'</div></div>';
+
+  let topHtml='';
+  if(rated){
+    topHtml='<div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">⭐ Hodnocení dne</div>'
+      +'<div style="font-size:20px;margin-bottom:4px">'+'⭐'.repeat(rated.rating)+'<span style="font-size:13px;color:var(--muted);margin-left:8px">'+rated.rating+'/5</span></div>'
+      +(rated.note?'<div style="font-size:13px;color:var(--muted);font-style:italic;margin-bottom:2px">'+esc(rated.note)+'</div>':'');
+  }else{
+    topHtml='<div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px">⭐ Ohodnoť dnešní den</div>'
+      +'<div class="star-row" id="drStars" style="margin-bottom:12px">'
+      +[1,2,3,4,5].map(i=>'<button class="star" onclick="setDayRatingStar('+i+')">⭐</button>').join('')
+      +'</div>'
+      +'<input type="hidden" id="drRating" value="0">'
+      +'<input class="fc" id="drNote" placeholder="Krátká poznámka..." style="font-size:13px;margin-bottom:10px">'
+      +'<button class="btn btn-primary btn-sm" onclick="saveDayRating()" style="width:100%">Uložit hodnocení</button>';
+  }
+
+  return'<div style="background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:20px 24px">'
+    +topHtml+histHtml+'</div>';
+}
+function setDayRatingStar(v){
+  document.getElementById('drRating').value=v;
+  document.querySelectorAll('#drStars .star').forEach((s,i)=>s.classList.toggle('on',i<v));
+}
+function saveDayRating(){
+  const rating=parseInt(document.getElementById('drRating').value)||0;
+  if(!rating){alert('Vyber hodnocení (1–5 hvězd).');return}
+  initDayRatings();
+  const td=today();
+  S.dayRatings=S.dayRatings.filter(r=>r.date!==td);
+  S.dayRatings.push({date:td,rating,note:document.getElementById('drNote').value.trim()});
+  save();renderWelcome();
+}
+
+// ── WEEKLY REVIEW ─────────────────────────────────────────────
+function initReviews(){if(!S.weeklyReviews)S.weeklyReviews=[];}
+function getWeekStart(date){const d=new Date(date);d.setDate(d.getDate()-((d.getDay()+6)%7));return d.toISOString().slice(0,10)}
+function renderReview(){
+  initReviews();
+  const el=document.getElementById('mainContent');
+  const td=today();const ws=getWeekStart(td);
+  const isSunday=new Date().getDay()===0;
+  const existing=S.weeklyReviews.find(r=>r.weekStart===ws);
+  const weekLabel=ws+' – '+new Date(new Date(ws).setDate(new Date(ws).getDate()+6)).toISOString().slice(0,10);
+  const past=[...S.weeklyReviews].sort((a,b)=>b.weekStart.localeCompare(a.weekStart)).filter(r=>r.weekStart!==ws);
+  let html='<div style="padding:28px 32px 16px;border-bottom:1px solid var(--border)">'
+    +'<div style="font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:4px">🏆 TÝDENNÍ REVIEW</div>'
+    +(isSunday?'<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--yellow);margin-top:8px">🔔 Je neděle — ideální čas na týdenní review!</div>':'')
+    +'</div>'
+    +'<div style="padding:24px 32px">'
+    +'<div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:16px">Týden: '+weekLabel+'</div>'
+    +'<div class="rv-section"><div class="rv-q">✅ Co šlo tento týden dobře?</div>'
+    +'<textarea class="rv-ta" id="rvWell" rows="3" placeholder="Úspěchy, splněné cíle, dobré rozhodnutí...">'+esc(existing?.wentWell||'')+'</textarea></div>'
+    +'<div class="rv-section"><div class="rv-q">🔄 Co bych příště udělal jinak?</div>'
+    +'<textarea class="rv-ta" id="rvImprove" rows="3" placeholder="Chyby, co se nepodařilo, co bych změnil...">'+esc(existing?.improve||'')+'</textarea></div>'
+    +'<div class="rv-section"><div class="rv-q">🎯 Hlavní fokus na příští týden</div>'
+    +'<textarea class="rv-ta" id="rvFocus" rows="3" placeholder="Jedno nebo dvě klíčová zadání na příští týden...">'+esc(existing?.focusNext||'')+'</textarea></div>'
+    +'<div class="rv-section"><div class="rv-q">⭐ Hodnocení týdne</div>'
+    +'<div class="star-row" id="rvStars" style="margin-bottom:4px">'
+    +[1,2,3,4,5].map(i=>'<button class="star '+(i<=(existing?.rating||0)?'on':'')+'" onclick="setRvStar('+i+')">⭐</button>').join('')
+    +'</div><input type="hidden" id="rvRating" value="'+(existing?.rating||0)+'"></div>'
+    +'<button class="btn btn-primary" onclick="saveReview(\''+ws+'\')">💾 Uložit review</button>';
+  // Lifetime rating chart from 2026-05-09
+  const RV_START='2026-05-09';
+  const allReviews=[...S.weeklyReviews].filter(r=>r.weekStart>=RV_START).sort((a,b)=>a.weekStart.localeCompare(b.weekStart));
+  if(allReviews.length>0){
+    const avgRv=Math.round(allReviews.filter(r=>r.rating).reduce((s,r)=>s+r.rating,0)/allReviews.filter(r=>r.rating).length*10)/10;
+    let rvBars='';
+    allReviews.forEach(r=>{
+      const h=r.rating?Math.round(r.rating/5*48):2;
+      const col=r.rating?(r.rating>=4?'var(--green)':r.rating>=3?'var(--yellow)':'var(--red)'):'var(--surface3)';
+      const tooltip='Týden '+r.weekStart+(r.rating?' — '+r.rating+'/5':'');
+      rvBars+='<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:28px">'
+        +'<div style="width:100%;height:48px;display:flex;align-items:flex-end">'
+        +'<div title="'+tooltip+'" style="width:100%;height:'+h+'px;background:'+col+';border-radius:3px 3px 0 0;cursor:default"></div></div>'
+        +'<div style="font-size:9px;color:var(--muted2);text-align:center;line-height:1.2">'+r.weekStart.slice(5).replace('-','.')+'</div>'
+        +(r.rating?'<div style="font-size:10px;font-weight:700;color:var(--muted)">'+r.rating+'</div>':'')
+        +'</div>';
+    });
+    html+='<div style="margin-top:32px;background:var(--surface3);border:1px solid var(--border);border-radius:14px;padding:18px 20px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'
+      +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)">📊 Historie od 9. 5. 2026</div>'
+      +'<div style="font-size:12px;color:var(--muted)">⌀ <b style="color:var(--text)">'+avgRv+'</b>/5 · <b style="color:var(--text)">'+allReviews.length+'</b> týdnů</div>'
+      +'</div>'
+      +'<div style="overflow-x:auto;padding-bottom:4px">'
+      +'<div style="display:flex;gap:6px;align-items:flex-end;min-width:fit-content">'+rvBars+'</div>'
+      +'</div></div>';
+  }
+
+  if(past.length){
+    html+='<div style="margin-top:28px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Předchozí review</div>';
+    past.forEach(r=>{
+      html+='<div class="rv-past"><div class="rv-past-hdr"><span>'+r.weekStart+'</span><span>'+'⭐'.repeat(r.rating||0)+'</span></div>'
+        +(r.wentWell?'<div style="font-size:13px;color:var(--muted);margin-bottom:6px"><strong style="color:var(--text)">✅ Dobře:</strong> '+esc(r.wentWell.slice(0,120))+(r.wentWell.length>120?'...':'')+'</div>':'')
+        +(r.focusNext?'<div style="font-size:13px;color:var(--muted)"><strong style="color:var(--text)">🎯 Fokus:</strong> '+esc(r.focusNext.slice(0,120))+(r.focusNext.length>120?'...':'')+'</div>':'')
+        +'</div>';
+    });
+  }
+  html+='</div>';
+  el.innerHTML=html;
+}
+function setRvStar(v){
+  document.getElementById('rvRating').value=v;
+  document.querySelectorAll('#rvStars .star').forEach((s,i)=>s.classList.toggle('on',i<v));
+}
+function saveReview(ws){
+  const well=document.getElementById('rvWell').value.trim();
+  const improve=document.getElementById('rvImprove').value.trim();
+  const focus=document.getElementById('rvFocus').value.trim();
+  const rating=parseInt(document.getElementById('rvRating').value)||0;
+  if(!well&&!improve&&!focus){alert('Vyplň alespoň jedno pole.');return}
+  initReviews();
+  S.weeklyReviews=S.weeklyReviews.filter(r=>r.weekStart!==ws);
+  S.weeklyReviews.push({weekStart:ws,wentWell:well,improve,focusNext:focus,rating,date:today()});
+  save();renderReview();
+}
+
+// ── MINDSET ───────────────────────────────────────────────────
+const MS_DEFAULTS=[
+  {id:'ms_1',emoji:'😔',title:'Cítím se demotivovaný',color:'#6366f1',solutions:[
+    'Připomeň si svůj WHY — proč to celé děláš',
+    'Projdi se ven alespoň 20 minut bez telefonu',
+    'Poslechni si motivační podcast nebo video',
+    'Podívej se na svůj Vision Board',
+    'Udělej jeden malý konkrétní krok vpřed — jen jeden'
+  ]},
+  {id:'ms_2',emoji:'😰',title:'Mám stres nebo úzkost',color:'#0ea5e9',solutions:[
+    'Dýchej: 4 vteřiny vdech — 7 zadržet — 8 výdech. Opakuj 3×',
+    'Napiš si na papír přesně co tě stresuje',
+    'Rozdělej problém na malé zvládnutelné kroky',
+    'Zavolej blízkému člověku — nevyhýbej se tomu',
+    'Jdi cvičit nebo aspoň 10 minut protáhnout'
+  ]},
+  {id:'ms_3',emoji:'😤',title:'Jsem frustrovaný',color:'#ef4444',solutions:[
+    'Odejdi od problému na 15–30 minut — fyzicky',
+    'Napiš si přesně co tě frustruje, bez cenzury',
+    'Zeptej se sám sebe: "Bude mi na tom záležet za rok?"',
+    'Řeš to s čistou hlavou — ráno nebo po krátkém spánku',
+    'Mluv o tom s někým, kdo to pochopí'
+  ]},
+  {id:'ms_4',emoji:'😴',title:'Nemám energii',color:'#f59e0b',solutions:[
+    'Vypij sklenici vody — dehydratace = únava',
+    'Dej si 20minutový power nap (nastav budík!)',
+    'Vyjdi ven na čerstvý vzduch alespoň na 10 minut',
+    'Udělej 10 dřepů nebo kliků — krev do těla a mozku',
+    'Zkontroluj: spal jsi dost? Jedl jsi dnes?'
+  ]},
+  {id:'ms_5',emoji:'🤔',title:'Nevím co mám dělat',color:'#8b5cf6',solutions:[
+    'Napiš si 3 nejdůležitější úkoly na dnes — jen 3',
+    'Vrať se ke svým cílům — co je teď nejblíže splnění?',
+    'Zavolej mentorovi nebo zkušenějšímu člověku',
+    'Udělej úkol, který jsi odkládal nejdéle',
+    'Přečti si poznámky z posledního plánování'
+  ]},
+  {id:'ms_6',emoji:'😞',title:'Mám pocit selhání',color:'#10b981',solutions:[
+    'Připomeň si: každý úspěšný člověk selhal mnohokrát',
+    'Napiš si 3 věci, které se ti tento týden povedly',
+    'Co ses z toho naučil? Neúspěch = lekce, ne konec',
+    'Mluv sám se sebou jako se svým nejlepším přítelem',
+    'Podívej se jak daleko jsi od startu, ne jak daleko od cíle'
+  ]}
+];
+function initMS(){
+  if(!S.mindset){S.mindset={about:'',situations:MS_DEFAULTS.map(s=>Object.assign({},s,{solutions:[...s.solutions]}))};save()}
+}
+function renderMindset(){
+  const el=document.getElementById('mainContent');
+  initMS();
+  const ms=S.mindset;
+  let html='<div style="padding:32px 32px 20px;border-bottom:1px solid var(--border)">'
+    +'<div style="font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:12px">🧠 MINDSET & POHODA</div>'
+    +'<textarea id="msAbout" rows="2" style="width:100%;background:transparent;border:none;outline:none;font-family:inherit;font-size:17px;font-weight:500;color:var(--text);resize:none;line-height:1.6;caret-color:var(--accent)" '
+    +'placeholder="Napiš si svůj mindset mantra nebo osobní připomínku..." onblur="saveMsAbout()">'+esc(ms.about||'')+'</textarea>'
+    +'</div>'
+    +'<div style="padding:22px 32px 10px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">Když se cítím...</div>'
+    +'<div style="padding:0 32px 32px"><div class="ms-grid">';
+  (ms.situations||[]).forEach(s=>{
+    html+='<div class="ms-card" style="border-top:3px solid '+s.color+'">'
+      +'<div class="ms-card-top"><div class="ms-emoji">'+s.emoji+'</div>'
+      +'<div class="ms-title">'+esc(s.title)+'</div></div>'
+      +'<ol class="ms-sols">';
+    (s.solutions||[]).forEach((sol,i)=>{
+      html+='<li class="ms-sol">'
+        +'<span class="ms-num" style="background:'+s.color+'">'+(i+1)+'</span>'
+        +'<span>'+esc(sol)+'</span></li>';
+    });
+    html+='</ol>'
+      +'<div class="ms-card-acts">'
+      +'<button class="delbtn" onclick="openEditMs(\''+s.id+'\')" title="Upravit">✏️</button>'
+      +'<button class="delbtn" onclick="delMs(\''+s.id+'\')" title="Smazat">✕</button>'
+      +'</div></div>';
+  });
+  html+='<div class="ms-add" onclick="openAddMs()">'
+    +'<div style="font-size:30px;color:var(--muted2)">+</div>'
+    +'<div style="font-size:13px;color:var(--muted);font-weight:500">Přidat situaci</div>'
+    +'</div></div></div>';
+  el.innerHTML=html;
+}
+function saveMsAbout(){const t=document.getElementById('msAbout');if(t&&S.mindset){S.mindset.about=t.value;save()}}
+function openAddMs(){
+  showModal('<div class="modal-title">Nová situace</div>'
+    +'<div class="frow">'
+    +'<div class="fg" style="flex:0 0 90px"><label>Emoji</label><input class="fc" id="msEmoji" placeholder="😔" style="font-size:22px;text-align:center" maxlength="4"></div>'
+    +'<div class="fg"><label>Situace / pocit *</label><input class="fc" id="msTitle" placeholder="Cítím se demotivovaný..." autofocus></div>'
+    +'</div>'
+    +'<div class="fg"><label>Barva</label><div class="swatches" id="msSw">'+swatchRow(COLORS[0])+'</div></div>'
+    +'<div class="fg"><label>Co dělat — každý krok na nový řádek *</label>'
+    +'<textarea class="fc" id="msSols" rows="6" placeholder="Projdi se ven 20 minut\nPřipomeň si svůj WHY\nUdělej jeden malý krok..."></textarea></div>'
+    +'<div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button>'
+    +'<button class="btn btn-primary" onclick="saveMs()">Přidat</button></div>');
+}
+function openEditMs(id){
+  const s=(S.mindset?.situations||[]).find(x=>x.id===id);if(!s)return;
+  showModal('<div class="modal-title">Upravit situaci</div>'
+    +'<input type="hidden" id="msEditId" value="'+id+'">'
+    +'<div class="frow">'
+    +'<div class="fg" style="flex:0 0 90px"><label>Emoji</label><input class="fc" id="msEmoji" value="'+esc(s.emoji)+'" style="font-size:22px;text-align:center" maxlength="4"></div>'
+    +'<div class="fg"><label>Situace / pocit *</label><input class="fc" id="msTitle" value="'+esc(s.title)+'" autofocus></div>'
+    +'</div>'
+    +'<div class="fg"><label>Co dělat — každý krok na nový řádek</label>'
+    +'<textarea class="fc" id="msSols" rows="6">'+esc((s.solutions||[]).join('\n'))+'</textarea></div>'
+    +'<div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button>'
+    +'<button class="btn btn-primary" onclick="saveMs()">Uložit</button></div>');
+}
+function saveMs(){
+  const title=document.getElementById('msTitle').value.trim();
+  const emoji=document.getElementById('msEmoji').value.trim()||'💭';
+  const solutions=document.getElementById('msSols').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!title){alert('Zadej název situace.');return}
+  if(!solutions.length){alert('Přidej alespoň jeden krok.');return}
+  initMS();
+  const editId=document.getElementById('msEditId')?.value;
+  if(editId){
+    const sit=S.mindset.situations.find(s=>s.id===editId);
+    if(sit){sit.title=title;sit.emoji=emoji;sit.solutions=solutions}
+  } else {
+    const color=getColor()||COLORS[S.mindset.situations.length%COLORS.length];
+    S.mindset.situations.push({id:'ms_'+uid(),title,emoji,color,solutions});
+  }
+  save();closeModal();renderMindset();
+}
+function delMs(id){
+  if(!confirm('Smazat tuto situaci?'))return;
+  if(S.mindset)S.mindset.situations=(S.mindset.situations||[]).filter(s=>s.id!==id);
+  save();renderMindset();
+}
+
+// ── VISION BOARD ──────────────────────────────────────────────
+const VDB={
+  _db:null,
+  open(){return new Promise((res,rej)=>{const r=indexedDB.open('vdb_v1',1);r.onupgradeneeded=e=>e.target.result.createObjectStore('img',{keyPath:'id'});r.onsuccess=e=>{this._db=e.target.result;res()};r.onerror=rej})},
+  set(id,url){return new Promise((res,rej)=>{const tx=this._db.transaction('img','readwrite');tx.objectStore('img').put({id,url});tx.oncomplete=res;tx.onerror=rej})},
+  get(id){return new Promise((res,rej)=>{const tx=this._db.transaction('img','readonly');const r=tx.objectStore('img').get(id);r.onsuccess=e=>res(e.target.result?.url);r.onerror=rej})},
+  del(id){return new Promise((res,rej)=>{const tx=this._db.transaction('img','readwrite');tx.objectStore('img').delete(id);tx.oncomplete=res;tx.onerror=rej})}
+};
+const VB_CATS={
+  lifestyle:{label:'Životní styl',color:'#6366f1'},
+  travel:{label:'Cestování',color:'#0ea5e9'},
+  living:{label:'Bydlení',color:'#10b981'},
+  business:{label:'Business',color:'#f59e0b'},
+  health:{label:'Zdraví',color:'#ef4444'},
+  growth:{label:'Osobní rozvoj',color:'#8b5cf6'},
+  family:{label:'Rodina',color:'#ec4899'},
+  other:{label:'Ostatní',color:'#64748b'}
+};
+const VB_STATUS={dream:'💭 Sen',progress:'🔄 V procesu',done:'✅ Splněno'};
+const VB_DEFAULTS=[
+  {id:'vb_bmw',title:'BMW M4 Competition',category:'lifestyle',desc:'Moje vysněné auto',status:'dream',color:'#1f2937'},
+  {id:'vb_como',title:'Lago di Como, Itálie',category:'travel',desc:'Místo, kam musím dojet',status:'dream',color:'#0c4a6e'},
+  {id:'vb_city',title:'Penthouse s výhledem na město',category:'living',desc:'Bydlet nad světem',status:'dream',color:'#1e1b4b'},
+  {id:'vb_villa1',title:'Středomořská vila s bazénem',category:'living',desc:'Môj dream home #1',status:'dream',color:'#78350f'},
+  {id:'vb_villa2',title:'Luxusní rezidence — zahrada & pool',category:'living',desc:'Môj dream home #2',status:'dream',color:'#14532d'}
+];
+function initVB(){
+  if(!S.visionBoard)S.visionBoard={mission:'',cards:[]};
+  if(!S.visionBoard.cards.length){S.visionBoard.cards=VB_DEFAULTS.map(c=>({...c}));save()}
+}
+async function renderVisionBoard(){
+  const el=document.getElementById('mainContent');
+  initVB();
+  const vb=S.visionBoard;
+  el.innerHTML='<div class="vb-page">'
+    +'<div class="vb-header">'
+    +'<div style="font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:12px">🎨 VISION BOARD</div>'
+    +'<textarea class="vb-mission" id="vbMission" rows="2" placeholder="Napiš svou vizi... Kdo chceš být? Kde chceš být za 5 let?" onblur="saveVBMission()">'+esc(vb.mission||'')+'</textarea>'
+    +'</div>'
+    +'<div class="vb-grid" id="vbGrid"><div style="padding:20px;color:var(--muted)">Načítám...</div></div>'
+    +'</div>';
+  await renderVBGrid();
+}
+async function renderVBGrid(){
+  const grid=document.getElementById('vbGrid');
+  if(!grid)return;
+  const cards=S.visionBoard?.cards||[];
+  let html='';
+  for(const c of cards){
+    const cat=VB_CATS[c.category]||VB_CATS.other;
+    const img=await VDB.get(c.id);
+    const plIco={lifestyle:'🚗',travel:'🌊',living:'🏛️',business:'💼',health:'🏋️',growth:'📚',family:'❤️',other:'✨'}[c.category]||'✨';
+    html+='<div class="vb-card">';
+    if(img){html+='<img class="vb-img" src="'+img+'" alt="'+esc(c.title)+'">';}
+    else{html+='<div class="vb-placeholder" style="background:linear-gradient(145deg,'+c.color+'ee,'+c.color+'66)">'
+      +'<div style="font-size:52px">'+plIco+'</div>'
+      +'<div style="font-size:12px;color:rgba(255,255,255,.55);font-weight:500">Nahraj foto ↗</div>'
+      +'</div>';}
+    html+='<div class="vb-overlay">'
+      +'<div class="vb-card-title">'+esc(c.title)+'</div>'
+      +'<div class="vb-card-meta">'
+      +'<span class="vb-cat" style="background:'+cat.color+'33;border:1px solid '+cat.color+'55">'+cat.label+'</span>'
+      +'<span class="vb-status">'+(VB_STATUS[c.status]||'')+'</span>'
+      +'</div>'
+      +(c.desc?'<div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:6px">'+esc(c.desc)+'</div>':'')
+      +'</div>'
+      +'<div class="vb-actions">'
+      +'<label class="vb-btn" title="Nahrát foto" style="cursor:pointer">📷<input type="file" accept="image/*" style="display:none" onchange="uploadVBImg(\''+c.id+'\',this)"></label>'
+      +'<button class="vb-btn" onclick="delVBCard(\''+c.id+'\')" title="Smazat">✕</button>'
+      +'</div>'
+      +'</div>';
+  }
+  html+='<div class="vb-add-card" onclick="openAddVBCard()">'
+    +'<div style="font-size:30px;color:var(--muted2)">+</div>'
+    +'<div style="font-size:13px;color:var(--muted);font-weight:500">Přidat kartu</div>'
+    +'</div>';
+  grid.innerHTML=html;
+}
+function saveVBMission(){const t=document.getElementById('vbMission');if(t){S.visionBoard.mission=t.value;save()}}
+async function uploadVBImg(cardId,input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async e=>{await VDB.set(cardId,e.target.result);renderVBGrid()};
+  reader.readAsDataURL(file);
+}
+async function delVBCard(id){
+  if(!confirm('Smazat tuto kartu ze Vision Boardu?'))return;
+  S.visionBoard.cards=(S.visionBoard.cards||[]).filter(c=>c.id!==id);
+  await VDB.del(id);save();renderVBGrid();
+}
+function openAddVBCard(){
+  const catOpts=Object.entries(VB_CATS).map(([k,v])=>'<option value="'+k+'">'+v.label+'</option>').join('');
+  const stOpts=Object.entries(VB_STATUS).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('');
+  showModal('<div class="modal-title">Nová Vision karta</div>'
+    +'<div class="fg"><label>Název *</label><input class="fc" id="vcTitle" placeholder="Název snu nebo cíle..." autofocus></div>'
+    +'<div class="fg"><label>Popis</label><input class="fc" id="vcDesc" placeholder="Krátky popis..."></div>'
+    +'<div class="frow"><div class="fg"><label>Kategorie</label><select class="fc" id="vcCat">'+catOpts+'</select></div>'
+    +'<div class="fg"><label>Stav</label><select class="fc" id="vcStatus">'+stOpts+'</select></div></div>'
+    +'<div class="fg"><label>URL obrázku (volitelné)</label><input class="fc" id="vcUrl" placeholder="https://..."></div>'
+    +'<div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveVBCard()">Přidat</button></div>');
+}
+async function saveVBCard(){
+  const title=document.getElementById('vcTitle').value.trim();
+  if(!title){alert('Zadej název.');return}
+  const cat=document.getElementById('vcCat').value;
+  const id='vb_'+uid();
+  const url=document.getElementById('vcUrl').value.trim();
+  const card={id,title,category:cat,desc:document.getElementById('vcDesc').value.trim(),
+    status:document.getElementById('vcStatus').value,color:VB_CATS[cat]?.color||'#374151'};
+  if(url)await VDB.set(id,url);
+  S.visionBoard.cards.push(card);
+  save();closeModal();renderVBGrid();
+}
+
+// ── RECURRING ─────────────────────────────────────────────────
+function processRecurring(){
+  const now=new Date(),curM=today().slice(0,7),curQ=Math.floor(now.getMonth()/3),curY=now.getFullYear();
+  let changed=false;
+  S.businesses.forEach(b=>{
+    (b.finance?.recurring||[]).filter(r=>r.active!==false).forEach(r=>{
+      let add=false;
+      const last=r.lastAdded;
+      if(r.frequency==='monthly')add=!last||last.slice(0,7)<curM;
+      else if(r.frequency==='weekly'){const d=last?new Date(last):new Date(0);add=(now-d)>=7*864e5}
+      else if(r.frequency==='quarterly'){
+        if(!last)add=true;
+        else{const d=new Date(last),lQ=Math.floor(d.getMonth()/3);add=d.getFullYear()<curY||(d.getFullYear()===curY&&lQ<curQ)}
+      }
+      if(add){
+        if(!b.finance)b.finance={transactions:[],recurring:[]};
+        if(!b.finance.transactions)b.finance.transactions=[];
+        b.finance.transactions.push({id:uid(),type:r.type,amount:r.amount,date:today(),category:r.category,note:(r.note?r.note+' ':'')+'🔄',isRecurring:true});
+        r.lastAdded=today();changed=true;
+      }
+    });
+  });
+  if(changed)save();
+}
+function recSection(recs,cur){
+  const fl={weekly:'Týdně',monthly:'Měsíčně',quarterly:'Čtvrtletně'};
+  let h='<div class="table-wrap" style="margin-top:18px"><div class="table-hdr"><h3>Opakující se transakce ('+recs.length+')</h3><button class="btn btn-primary btn-sm" onclick="openAddRecurring()">+ Přidat</button></div>';
+  if(!recs.length){h+='<div style="padding:18px 24px;font-size:13px;color:var(--muted2)">Žádné opakující se transakce. Přidejte nájem, předplatné nebo pravidelné příjmy.</div></div>';return h}
+  h+='<div>';
+  recs.forEach(r=>{
+    h+='<div class="rec-row">'
+      +'<span style="font-size:17px">'+(r.type==='income'?'💰':'💸')+'</span>'
+      +'<div style="flex:1"><div style="font-weight:600;font-size:13.5px">'+esc(r.category||'Bez kategorie')+'</div>'
+      +(r.note?'<div style="font-size:12px;color:var(--muted)">'+esc(r.note)+'</div>':'')+'</div>'
+      +'<span class="rec-badge">'+fl[r.frequency]+'</span>'
+      +'<span style="font-weight:700;font-size:13px;color:'+(r.type==='income'?'var(--green)':'var(--red)')+'">'
+      +(r.type==='income'?'+':'-')+fmoney(r.amount,cur)+'</span>'
+      +'<button class="delbtn" onclick="delRecurring(\''+r.id+'\')" title="Smazat">✕</button>'
+      +'</div>';
+  });
+  h+='</div></div>';return h;
+}
+function openAddRecurring(){
+  showModal('<div class="modal-title">Opakující se transakce</div>'
+    +'<div class="fg"><label>Typ *</label><select class="fc" id="rType"><option value="income">💚 Příjem</option><option value="expense">🔴 Výdaj</option></select></div>'
+    +'<div class="frow"><div class="fg"><label>Částka *</label><input class="fc" id="rAmt" type="number" min="0" placeholder="0" autofocus></div>'
+    +'<div class="fg"><label>Frekvence</label><select class="fc" id="rFreq"><option value="monthly">Měsíčně</option><option value="weekly">Týdně</option><option value="quarterly">Čtvrtletně</option></select></div></div>'
+    +'<div class="fg"><label>Kategorie</label><input class="fc" id="rCat" placeholder="Nájem, Předplatné, Paušál..."></div>'
+    +'<div class="fg"><label>Poznámka</label><input class="fc" id="rNote" placeholder="Volitelná poznámka"></div>'
+    +'<div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveRecurring()">Přidat</button></div>');
+}
+function saveRecurring(){
+  const amt=parseFloat(document.getElementById('rAmt').value);
+  if(!amt||amt<=0){alert('Zadej platnou částku.');return}
+  const b=getBiz(activeBiz);
+  if(!b.finance)b.finance={transactions:[],recurring:[]};
+  if(!b.finance.recurring)b.finance.recurring=[];
+  b.finance.recurring.push({id:uid(),type:document.getElementById('rType').value,amount:amt,
+    frequency:document.getElementById('rFreq').value,category:document.getElementById('rCat').value.trim(),
+    note:document.getElementById('rNote').value.trim(),startDate:today(),lastAdded:null,active:true});
+  save();closeModal();renderMain();
+}
+function delRecurring(id){
+  const b=getBiz(activeBiz);
+  if(b.finance?.recurring)b.finance.recurring=b.finance.recurring.filter(r=>r.id!==id);
+  save();renderMain();
+}
+
+// ── GOALS ─────────────────────────────────────────────────────
+function goalCurrent(g,txs){
+  const td=today();
+  let rel=txs;
+  if(g.period==='month')rel=txs.filter(t=>t.date?.slice(0,7)===td.slice(0,7));
+  else if(g.period==='year')rel=txs.filter(t=>t.date?.startsWith(td.slice(0,4)));
+  else if(g.period==='quarter'){
+    const now=new Date(),q=Math.floor(now.getMonth()/3);
+    const qs=new Date(now.getFullYear(),q*3,1).toISOString().slice(0,10);
+    const qe=new Date(now.getFullYear(),q*3+3,0).toISOString().slice(0,10);
+    rel=txs.filter(t=>t.date>=qs&&t.date<=qe);
+  }
+  if(g.type==='income')return rel.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  if(g.type==='expense')return rel.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  if(g.type==='profit'){
+    const i=rel.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+    const e=rel.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+    return i-e;
+  }
+  return g.currentManual||0;
+}
+function tabGoals(b){
+  const goals=b.goals||[];
+  const txs=(b.finance?.transactions||[]);
+  const cur=b.currency||'CZK';
+  const pLabel={month:'Tento měsíc',quarter:'Toto čtvrtletí',year:'Tento rok'};
+  const tLabel={income:'💰 Příjmy',expense:'💸 Výdaje',profit:'📈 Zisk',custom:'⭐ Vlastní'};
+  let html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">'
+    +'<div class="sec-title" style="margin:0">Cíle & Milníky</div>'
+    +'<button class="btn btn-primary btn-sm" onclick="openAddGoal()">+ Přidat cíl</button></div>';
+  if(!goals.length)return html+'<div class="empty"><div class="ico">🎯</div><p>Žádné cíle zatím. Nastav si měsíční nebo roční cíl!</p><button class="btn btn-primary" onclick="openAddGoal()">+ Přidat první cíl</button></div>';
+  goals.forEach(g=>{
+    const current=goalCurrent(g,txs);
+    const pct=g.target>0?Math.min(100,Math.round(current/g.target*100)):0;
+    const done=pct>=100;
+    const warn=pct<40&&(g.period==='month'||g.period==='quarter');
+    const barColor=done?'var(--green)':warn?'var(--red)':'var(--accent)';
+    const statusBg=done?'var(--green-dim)':warn?'var(--red-dim)':'rgba(124,58,237,.15)';
+    const statusFg=done?'var(--green)':warn?'var(--red)':'var(--accent)';
+    const statusTxt=done?'✅ Splněno':warn?'⚠️ Pozor':'🔄 Probíhá';
+    html+='<div class="goal-card">'
+      +'<div class="goal-hdr"><div>'
+      +'<div class="goal-name">'+esc(g.name)+'</div>'
+      +'<div class="goal-meta">'+tLabel[g.type]+' · '+(pLabel[g.period]||g.period)+'</div>'
+      +'</div><div style="display:flex;align-items:center;gap:8px">'
+      +'<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:'+statusBg+';color:'+statusFg+'">'+statusTxt+'</span>'
+      +'<button class="delbtn" onclick="delGoal(\''+g.id+'\')">✕</button>'
+      +'</div></div>'
+      +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;background:'+barColor+'"></div></div>'
+      +'<div class="goal-foot">'
+      +'<span>'+fmoney(current,cur)+' / '+fmoney(g.target,cur)+'</span>'
+      +'<span class="goal-pct" style="color:'+barColor+'">'+pct+'%</span>'
+      +'</div></div>';
+  });
+  return html;
+}
+function openAddGoal(){
+  showModal('<div class="modal-title">Nový cíl</div>'
+    +'<div class="fg"><label>Název *</label><input class="fc" id="gName" placeholder="Vydělat 500k, Snížit výdaje na 50k..." autofocus></div>'
+    +'<div class="frow"><div class="fg"><label>Typ</label><select class="fc" id="gType">'
+    +'<option value="income">💰 Příjmy</option><option value="expense">💸 Výdaje</option>'
+    +'<option value="profit">📈 Zisk</option><option value="custom">⭐ Vlastní</option></select></div>'
+    +'<div class="fg"><label>Období</label><select class="fc" id="gPeriod">'
+    +'<option value="month">Měsíc</option><option value="quarter">Čtvrtletí</option><option value="year">Rok</option></select></div></div>'
+    +'<div class="fg"><label>Cílová částka *</label><input class="fc" id="gTarget" type="number" min="0" placeholder="500000"></div>'
+    +'<div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveGoal()">Přidat</button></div>');
+}
+function saveGoal(){
+  const name=document.getElementById('gName').value.trim();
+  const target=parseFloat(document.getElementById('gTarget').value)||0;
+  if(!name){alert('Zadej název cíle.');return}
+  if(!target){alert('Zadej cílovou částku.');return}
+  const b=getBiz(activeBiz);if(!b.goals)b.goals=[];
+  b.goals.push({id:uid(),name,type:document.getElementById('gType').value,period:document.getElementById('gPeriod').value,target,currentManual:0});
+  save();closeModal();renderMain();
+}
+function delGoal(id){
+  const b=getBiz(activeBiz);b.goals=(b.goals||[]).filter(g=>g.id!==id);
+  save();renderMain();
+}
+
+// ── STATS ─────────────────────────────────────────────────────
+function renderStats(){
+  const el=document.getElementById('mainContent');
+  if(!S.businesses.length){el.innerHTML='<div class="welcome"><div style="font-size:48px">📊</div><h2>Statistiky</h2><p>Nejdřív přidej alespoň jeden business.</p></div>';return}
+  const td=today(),curM=td.slice(0,7);
+  const prev=new Date();prev.setMonth(prev.getMonth()-1);
+  const prevM=prev.toISOString().slice(0,7);
+  function bStats(b){
+    const txs=b.finance?.transactions||[];
+    const cTx=txs.filter(t=>t.date?.startsWith(curM));
+    const pTx=txs.filter(t=>t.date?.startsWith(prevM));
+    const cI=cTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+    const cE=cTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+    const pI=pTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+    const pE=pTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+    return{cI,cE,pI,pE,cP:cI-cE,pP:pI-pE};
+  }
+  const all=S.businesses.map(b=>({b,s:bStats(b)}));
+  const totCurI=all.reduce((s,x)=>s+x.s.cI,0);
+  const totPrevI=all.reduce((s,x)=>s+x.s.pI,0);
+  const totCurE=all.reduce((s,x)=>s+x.s.cE,0);
+  const totPrevE=all.reduce((s,x)=>s+x.s.pE,0);
+  const totCurP=totCurI-totCurE,totPrevP=totPrevI-totPrevE;
+  function trend(cur,prev){
+    if(!prev)return'';
+    const p=Math.round((cur-prev)/prev*100);
+    return p>0?'<span class="trend-up">↑ '+p+'%</span>':p<0?'<span class="trend-dn">↓ '+Math.abs(p)+'%</span>':'<span style="color:var(--muted)">= stejné</span>';
+  }
+  const bestBiz=[...all].sort((a,b)=>b.s.cI-a.s.cI)[0];
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;padding-bottom:22px;border-bottom:1px solid var(--border)">
+      <div><h1 style="font-size:21px;font-weight:800;letter-spacing:-.5px">📊 Statistiky</h1>
+      <div style="font-size:13px;color:var(--muted);margin-top:2px">Přehled všech businessů · ${curM}</div></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-lbl">Příjmy tento měsíc</div><div class="stat-val green">${fmoney(totCurI,'CZK')}</div><div class="stat-sub">${trend(totCurI,totPrevI)}<span style="color:var(--muted)">vs. minulý měsíc</span></div></div>
+      <div class="stat-card"><div class="stat-lbl">Výdaje tento měsíc</div><div class="stat-val red">${fmoney(totCurE,'CZK')}</div><div class="stat-sub">${trend(totCurE,totPrevE)}<span style="color:var(--muted)">vs. minulý měsíc</span></div></div>
+      <div class="stat-card"><div class="stat-lbl">Zisk tento měsíc</div><div class="stat-val ${totCurP>=0?'green':'red'}">${fmoney(totCurP,'CZK')}</div><div class="stat-sub">${trend(totCurP,totPrevP)}<span style="color:var(--muted)">vs. minulý měsíc</span></div></div>
+      ${bestBiz?'<div class="stat-card"><div class="stat-lbl">Nejlepší business</div><div style="font-size:18px;font-weight:800;color:var(--text);margin:6px 0">'+esc(bestBiz.b.name)+'</div><div class="stat-sub" style="color:var(--green)">'+fmoney(bestBiz.s.cI,'CZK')+' příjmy</div></div>':''}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px">
+      <div class="chart-box"><div class="sec-title">Příjmy vs Výdaje tento měsíc</div><div class="chart-inner"><canvas id="sChart1"></canvas></div></div>
+      <div class="chart-box"><div class="sec-title">Trend příjmů – 6 měsíců</div><div class="chart-inner"><canvas id="sChart2"></canvas></div></div>
+    </div>
+    <div class="table-wrap"><div class="table-hdr"><h3>Přehled businessů – aktuální měsíc</h3></div>
+      <table><thead><tr><th>Business</th><th class="tr">Příjmy</th><th class="tr">Výdaje</th><th class="tr">Zisk</th><th class="tr">vs. min. měsíc</th></tr></thead>
+      <tbody>${all.map(({b,s})=>'<tr>'
+        +'<td><div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:'+b.color+';flex-shrink:0"></div>'+esc(b.name)+'</div></td>'
+        +'<td class="tr" style="color:var(--green)">'+fmoney(s.cI,b.currency||'CZK')+'</td>'
+        +'<td class="tr" style="color:var(--red)">'+fmoney(s.cE,b.currency||'CZK')+'</td>'
+        +'<td class="tr" style="color:'+(s.cP>=0?'var(--green)':'var(--red)')+'">'+fmoney(s.cP,b.currency||'CZK')+'</td>'
+        +'<td class="tr">'+(s.pI>0?'<span class="'+(s.cI>=s.pI?'trend-up':'trend-dn')+'">'+(s.cI>=s.pI?'↑':'↓')+' '+Math.abs(Math.round((s.cI-s.pI)/s.pI*100))+'%</span>':'—')+'</td>'
+        +'</tr>').join('')}</tbody></table></div>`;
+  setTimeout(()=>{
+    const c1=document.getElementById('sChart1');
+    if(c1&&all.length)new Chart(c1,{type:'bar',data:{
+      labels:all.map(x=>x.b.name),
+      datasets:[
+        {label:'Příjmy',data:all.map(x=>x.s.cI),backgroundColor:all.map(x=>x.b.color+'cc'),borderRadius:6},
+        {label:'Výdaje',data:all.map(x=>x.s.cE),backgroundColor:'rgba(248,113,113,.55)',borderRadius:6}
+      ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e2e8f0'}}},
+        scales:{x:{ticks:{color:'#718096'},grid:{color:'#2d3146'}},y:{ticks:{color:'#718096'},grid:{color:'#2d3146'}}}}});
+    const c2=document.getElementById('sChart2');
+    if(c2){const months=last6();
+      new Chart(c2,{type:'line',data:{labels:months,datasets:[
+        {label:'Celkové příjmy',data:months.map(m=>S.businesses.reduce((s,b)=>s+((b.finance?.transactions||[]).filter(t=>t.type==='income'&&t.date?.startsWith(m)).reduce((a,t)=>a+t.amount,0)),0)),
+          borderColor:'#7c3aed',backgroundColor:'rgba(124,58,237,.15)',fill:true,tension:.4,pointBackgroundColor:'#7c3aed'},
+        {label:'Celkové výdaje',data:months.map(m=>S.businesses.reduce((s,b)=>s+((b.finance?.transactions||[]).filter(t=>t.type==='expense'&&t.date?.startsWith(m)).reduce((a,t)=>a+t.amount,0)),0)),
+          borderColor:'#f87171',backgroundColor:'rgba(248,113,113,.1)',fill:true,tension:.4,pointBackgroundColor:'#f87171'}
+      ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e2e8f0'}}},
+        scales:{x:{ticks:{color:'#718096'},grid:{color:'#2d3146'}},y:{ticks:{color:'#718096'},grid:{color:'#2d3146'}}}}});}
+  },50);
+}
+
+// ── WELCOME ───────────────────────────────────────────────────
+const QUOTES=[
+  {q:'Jediný způsob, jak dělat skvělou práci, je milovat to, co děláte.',a:'Steve Jobs'},
+  {q:'Úspěch je součet malých snah, opakovaných den za dnem.',a:'Robert Collier'},
+  {q:'Nezáleží na tom, jak pomalu jdete — důležité je, že nezastavujete.',a:'Konfucius'},
+  {q:'Neúspěch je jen příležitostí začít znovu, tentokrát chytřeji.',a:'Henry Ford'},
+  {q:'Věřte, že dokážete — a jste na půli cesty.',a:'Theodore Roosevelt'},
+  {q:'Nejlepší čas zasadit strom byl před dvaceti lety. Druhý nejlepší čas je teď.',a:'Čínské přísloví'},
+  {q:'Nemusíš být skvělý, abys začal — ale musíš začít, abys byl skvělý.',a:'Zig Ziglar'},
+  {q:'Každý expert byl jednou začátečníkem.',a:'Helen Hayes'},
+  {q:'Cesta tisíce mil začíná jedním krokem.',a:'Lao‑c\''},
+  {q:'Ambice jsou sny s nastaveným motorem.',a:'H. Jackson Brown Jr.'},
+  {q:'Kdo chce, hledá způsob. Kdo nechce, hledá důvod.',a:'Arabské přísloví'},
+  {q:'Disciplína je most mezi cílem a jeho splněním.',a:'Jim Rohn'},
+  {q:'Pět let soustředěné práce dá víc než čtyřicet let průměrnosti.',a:'Jim Rohn'},
+  {q:'Opravdu velké věci se nikdy nerodí z pohodlí.',a:'Eleanor Roosevelt'},
+  {q:'Prosperita je výsledkem toho, co děláš v hodinách, kdy nemusíš.',a:'Brian Tracy'},
+  {q:'Investice do vědomostí přináší vždy nejlepší dividendy.',a:'Benjamin Franklin'},
+  {q:'Víra v sebe je první tajemství úspěchu.',a:'Ralph Waldo Emerson'},
+  {q:'Největší odměna za tvrdou práci není to, co za ni získáš, ale to, čím se díky ní staneš.',a:'John Ruskin'},
+  {q:'Jdi tam, kde je mlčení, přemýšlej, naslouchej, pak jednej.',a:'Marcus Aurelius'},
+  {q:'Každý den máš možnost začít znovu — a to je mocnější než cokoli jiného.',a:'Les Brown'},
+  {q:'Vaše čas je omezený. Neztrácejte ho žitím cizího života.',a:'Steve Jobs'},
+  {q:'Jedinou překážkou ke splnění snů je strach z neúspěchu.',a:'Francis Drake'},
+  {q:'Snaha a odvaha nejsou dost bez smysluplného cíle.',a:'John F. Kennedy'},
+  {q:'Vítězové nenechávají věci náhodě — plánují svůj úspěch.',a:'Winston Churchill'},
+  {q:'Nikdy nepodceňuj sílu jednoho dobrého rozhodnutí.',a:'Roy T. Bennett'},
+  {q:'Tvůj charakter se neformuje v krizi — v krizi se teprve projeví.',a:'Robert Freeman'},
+  {q:'Každý den jsme na výběr: udělat krok vpřed, nebo zůstat na místě.',a:'Dale Carnegie'},
+  {q:'Výsledky přicházejí k těm, kdo jsou ochotni pracovat, dokud ostatní spí.',a:'Thomas Edison'},
+  {q:'Nejúspěšnější lidé jsou ti, kteří nikdy nepřestali zkoušet.',a:'Napoleon Hill'},
+  {q:'Velké sny si žádají velkou odvahu — ale ještě více si žádají každodenní akci.',a:'Brian Tracy'},
+];
+function wGreet(){
+  const h=new Date().getHours();
+  if(h>=5&&h<12)return'Dobré ráno,';
+  if(h>=12&&h<17)return'Dobré odpoledne,';
+  if(h>=17&&h<22)return'Dobrý podvečer,';
+  return'Dobrou noc,';
+}
+function wTimeFmt(){return new Date().toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'})}
+function wDateFmt(){return new Date().toLocaleDateString('cs-CZ',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
+function wQuote(){
+  const n=new Date();
+  const doy=Math.floor((n-new Date(n.getFullYear(),0,0))/864e5);
+  return QUOTES[doy%QUOTES.length];
+}
+function renderWelcome(){
+  if(_wTimer){clearInterval(_wTimer);_wTimer=null}
+  const el=document.getElementById('mainContent');
+  const qt=wQuote();
+  const td=today();
+  const todayEvts=(S.global.events||[]).filter(e=>e.date===td).length
+    +S.businesses.reduce((s,b)=>s+((b.events||[]).filter(e=>e.date===td).length),0);
+  const totalInc=S.businesses.reduce((s,b)=>s+((b.finance?.transactions||[]).filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0)),0);
+  const totalHabits=S.businesses.reduce((s,b)=>s+(b.habits||[]).length,(S.global.habits||[]).length);
+  el.innerHTML=`
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%;padding:52px 28px;text-align:center">
+      <div style="max-width:620px;width:100%">
+        <div style="font-size:clamp(34px,5vw,58px);font-weight:800;letter-spacing:-2px;line-height:1.1;
+          background:linear-gradient(135deg,#a78bfa 0%,#818cf8 45%,#67e8f9 100%);
+          -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+          margin-bottom:10px">${wGreet()}</div>
+        <div style="font-size:clamp(28px,4vw,50px);font-weight:700;letter-spacing:-.5px;color:var(--text);margin-bottom:30px">pane Vorle.</div>
+        <div style="font-size:15px;margin-bottom:44px;display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap">
+          <span id="wClock" style="font-variant-numeric:tabular-nums;font-weight:700;font-size:18px;color:var(--text)">${wTimeFmt()}</span>
+          <span style="color:var(--border2)">·</span>
+          <span style="color:var(--muted);text-transform:capitalize">${wDateFmt()}</span>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:22px;padding:34px 40px;margin-bottom:36px;text-align:left;position:relative;overflow:hidden">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#7c3aed,#818cf8,#67e8f9)"></div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:18px">✨ Citát dne</div>
+          <div style="font-size:clamp(15px,2.2vw,19px);font-weight:500;line-height:1.7;color:var(--text);font-style:italic;margin-bottom:22px">„${qt.q}"</div>
+          <div style="font-size:13px;color:var(--muted);font-weight:500">— ${qt.a}</div>
+        </div>
+        <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:28px">
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:20px 28px;min-width:120px">
+            <div style="font-size:28px;margin-bottom:6px">🏢</div>
+            <div style="font-size:28px;font-weight:800;color:var(--text);line-height:1">${S.businesses.length}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:6px">Businessů</div>
+          </div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:20px 28px;min-width:120px">
+            <div style="font-size:28px;margin-bottom:6px">📅</div>
+            <div style="font-size:28px;font-weight:800;color:var(--text);line-height:1">${todayEvts}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:6px">Událostí dnes</div>
+          </div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:20px 28px;min-width:120px">
+            <div style="font-size:28px;margin-bottom:6px">🔁</div>
+            <div style="font-size:28px;font-weight:800;color:var(--text);line-height:1">${totalHabits}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:6px">Habits celkem</div>
+          </div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:20px 28px;min-width:150px">
+            <div style="font-size:28px;margin-bottom:6px">💰</div>
+            <div style="font-size:20px;font-weight:800;color:var(--green);line-height:1">${fmoney(totalInc,'CZK')}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:6px">Celkové příjmy</div>
+          </div>
+        </div>
+        ${dayRatingWidget()}
+      </div>
+    </div>`;
+  _wTimer=setInterval(()=>{
+    const cl=document.getElementById('wClock');
+    if(cl)cl.textContent=wTimeFmt();
+    else{clearInterval(_wTimer);_wTimer=null}
+  },1000);
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+processRecurring();
+VDB.open().catch(()=>{});
+renderSidebar();
+renderWelcome();
+
+// ── CHAT ──────────────────────────────────────────────────────
+function chatToggle(){
+  const p=document.getElementById('chatPanel');
+  p.classList.toggle('hidden');
+  if(!p.classList.contains('hidden'))setTimeout(()=>document.getElementById('chatInput').focus(),80);
+}
+function chatSend(){
+  const inp=document.getElementById('chatInput');
+  const msg=inp.value.trim();
+  if(!msg)return;
+  inp.value='';
+  chatAddMsg(msg,'user');
+  const reply=chatProcess(msg);
+  setTimeout(()=>chatAddMsg(reply,'bot'),160);
+}
+function chatAddMsg(text,role){
+  const el=document.getElementById('chatMsgs');
+  const d=document.createElement('div');
+  d.className='chat-msg '+role;
+  d.innerHTML=text.replace(/\n/g,'<br>');
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+function chatParseDate(text){
+  const t=text.toLowerCase();
+  const td=today();
+  if(/dnes|dneska/.test(t))return td;
+  if(/zítra|zitra/.test(t)){const d=new Date(td);d.setDate(d.getDate()+1);return d.toISOString().slice(0,10)}
+  if(/pozítří|pozitr/.test(t)){const d=new Date(td);d.setDate(d.getDate()+2);return d.toISOString().slice(0,10)}
+  const full=t.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if(full)return full[3]+'-'+full[2].padStart(2,'0')+'-'+full[1].padStart(2,'0');
+  const short=t.match(/(\d{1,2})\.(\d{1,2})\./);
+  if(short){const y=new Date().getFullYear();return y+'-'+short[2].padStart(2,'0')+'-'+short[1].padStart(2,'0')}
+  const dayMap={pondělí:1,pondelí:1,úterý:2,utery:2,středu:3,stredu:3,středa:3,streda:3,čtvrtek:4,ctvrtek:4,pátek:5,patek:5,sobotu:6,sobota:6,neděli:0,nedeli:0,neděle:0,nedele:0};
+  for(const[name,dNum]of Object.entries(dayMap)){
+    if(t.includes(name)){
+      const d=new Date(td);const cur=d.getDay();
+      let diff=(dNum-cur+7)%7;if(diff===0)diff=7;
+      d.setDate(d.getDate()+diff);return d.toISOString().slice(0,10);
+    }
+  }
+  return td;
+}
+function chatParseTime(text){
+  const t=text.toLowerCase();
+  const hm=t.match(/\bv[e]?\s*(\d{1,2}):(\d{2})/);
+  if(hm)return hm[1].padStart(2,'0')+':'+hm[2];
+  const h=t.match(/\bv[e]?\s*(\d{1,2})\s*h\b/);
+  if(h)return h[1].padStart(2,'0')+':00';
+  const hod=t.match(/\bv[e]?\s*(\d{1,2})\s*hodin/);
+  if(hod)return hod[1].padStart(2,'0')+':00';
+  return'';
+}
+function chatParseName(text){
+  const q=text.match(/['"„"](.*?)['""""]/);
+  return q?q[1]:null;
+}
+function chatProcess(msg){
+  const m=msg.toLowerCase();
+  // ── Add event / calendar ──
+  if(/(přidej|pridej|add)/.test(m)&&/(schůzku|schuzku|událost|udalost|meeting|do kalendář|do kalendare|event)/.test(m)){
+    const name=chatParseName(msg)||'Událost';
+    const date=chatParseDate(msg);
+    const time=chatParseTime(msg);
+    const src=_src();
+    if(!src.events)src.events=[];
+    src.events.push({id:uid(),title:name,date,time,desc:'',color:'#7c3aed'});
+    save();_calR();
+    return'✅ Přidáno do kalendáře:\n📅 "'+name+'" — '+date+(time?' v '+time:'');
+  }
+  // ── Add task ──
+  if(/(přidej|pridej|add)/.test(m)&&/(úkol|ukol|task|todo|připomínku|pripominku)/.test(m)){
+    const name=chatParseName(msg)||msg.replace(/(přidej|pridej|add|úkol|ukol|task|todo|připomínku|pripominku)/gi,'').trim()||'Úkol';
+    let period='day';
+    if(/(týden|tyden|week|týdenn|tento týden)/.test(m))period='week';
+    else if(/(měsíc|mesic|month|tento měsíc)/.test(m))period='month';
+    const src=_src();
+    if(!src.dailyTasks)src.dailyTasks=[];
+    src.dailyTasks.push({id:uid(),text:name,date:today(),done:false,period});
+    save();_dailyR();
+    const labels={day:'dnes',week:'tento týden',month:'tento měsíc'};
+    return'✅ Úkol přidán:\n✔️ "'+name+'" — '+labels[period];
+  }
+  // ── Add habit ──
+  if(/(přidej|pridej|add)/.test(m)&&/(habit|zvyk|návyk|navyk)/.test(m)){
+    const name=chatParseName(msg)||msg.replace(/(přidej|pridej|add|habit|zvyk|návyk|navyk)/gi,'').trim()||'Habit';
+    const src=_src();
+    if(!src.habits)src.habits=[];
+    src.habits.push({id:uid(),name,completedDates:[]});
+    save();_dailyR();
+    return'✅ Habit přidán:\n🔁 "'+name+'"';
+  }
+  // ── Add income / expense ──
+  if(/(přidej|pridej|add)/.test(m)&&/(příjem|prijem|income|výdaj|vydaj|expense|náklad|naklad|tržbu|trzbu|utratil|utratila)/.test(m)){
+    const type=/(příjem|prijem|income|tržbu|trzbu)/.test(m)?'income':'expense';
+    // strip dates so we don't match day/month numbers as amounts
+    const stripped=msg.replace(/\d{1,2}\.\d{1,2}\.(\d{4})?/g,' ');
+    const amtM=stripped.match(/(\d[\d\s]*)(?:[,.](\d+))?\s*(k|tis)?\b/i);
+    let amount=0;
+    if(amtM){
+      const raw=(amtM[1]||'').replace(/\s/g,'')+(amtM[2]?'.'+amtM[2]:'');
+      amount=parseFloat(raw)||0;
+      if(/k|tis/i.test(amtM[3]||''))amount*=1000;
+    }
+    const category=chatParseName(msg)||'Transakce';
+    const date=chatParseDate(msg);
+    // find target business
+    let target=null;
+    if(!globalView){
+      target=getBiz(activeBiz);
+    } else {
+      // quoted: do businessu 'Calling' or do 'Calling'
+      const bq=msg.match(/(?:do businessu|pro business|do firmy|do)\s+['"„"](.*?)['""""]/i);
+      if(bq){const n=bq[1].toLowerCase();target=S.businesses.find(b=>b.name.toLowerCase()===n)||S.businesses.find(b=>b.name.toLowerCase().includes(n))||null}
+      // unquoted: any business name mentioned in message
+      if(!target){const ml=msg.toLowerCase();for(const b of S.businesses){if(ml.includes(b.name.toLowerCase())){target=b;break}}}
+      // single business fallback
+      if(!target&&S.businesses.length===1)target=S.businesses[0];
+    }
+    if(!target){
+      if(!S.businesses.length)return'❌ Nemáš žádný business. Nejdřív ho přidej.';
+      return'❌ Uveď název businessu, např.:\n"Přidej příjem \'Faktura\' 50000 do businessu \''+S.businesses[0].name+'\'"';
+    }
+    if(!target.finance)target.finance={transactions:[]};
+    if(!target.finance.transactions)target.finance.transactions=[];
+    target.finance.transactions.push({id:uid(),type,amount,date,category,note:''});
+    save();
+    if(!globalView&&activeBiz===target.id)renderMain();
+    const emoji=type==='income'?'💰':'💸';
+    return emoji+' '+(type==='income'?'Příjem':'Výdaj')+' přidán do '+target.name+':\n"'+category+'" — '+amount.toLocaleString('cs-CZ')+' Kč\n📅 '+date;
+  }
+  // ── What today ──
+  if(/(co mám|co mam|agenda|plán dnes|plan dnes|co je dnes|co dnes|dneska)/.test(m)){
+    const src=_src();const td=today();
+    const events=(src.events||[]).filter(e=>e.date===td);
+    const tasks=(src.dailyTasks||[]).filter(t=>(!t.period||t.period==='day')&&t.date===td&&!t.done);
+    const habitsLeft=(src.habits||[]).filter(h=>!(h.completedDates||[]).includes(td));
+    let reply='📋 Dnes ('+td+'):\n';
+    if(events.length)reply+='\n📅 Události:\n'+events.map(e=>(e.time?e.time+' ':'')+'"'+e.title+'"').join('\n');
+    if(tasks.length)reply+='\n\n✅ Úkoly:\n'+tasks.map(t=>'• '+t.text).join('\n');
+    if(habitsLeft.length)reply+='\n\n🔁 Nesplněné habits:\n'+habitsLeft.map(h=>'• '+h.name).join('\n');
+    if(!events.length&&!tasks.length&&!habitsLeft.length)reply+='Nic naplánováno — užij si volný den! 🎉';
+    return reply;
+  }
+  // ── Help ──
+  if(/(help|pomoc|nápověda|napoveda|co umíš|co umis|příkazy|prikazy)/.test(m)){
+    return'💡 Co umím:\n\n📅 Událost:\n"Přidej schůzku \'Název\' 15.5.2026 v 14:00"\n\n✅ Úkol:\n"Přidej úkol \'Zavolat\' na dnes/týden/měsíc"\n\n🔁 Habit:\n"Přidej habit \'Cvičení\'"\n\n💰 Příjem:\n"Přidej příjem \'Faktura\' 50000 do businessu \'Calling\'"\n\n💸 Výdaj:\n"Přidej výdaj \'Nájem\' 15000 do businessu \'Calling\'"\n\n📋 Přehled:\n"Co mám dnes?"';
+  }
+  return'Nerozumím 🤔\n\nNapiš "help" pro příkazy nebo zkus:\n• "Přidej příjem \'Faktura\' 50000"\n• "Přidej výdaj \'Nájem\' 15000"\n• "Přidej schůzku \'název\' DD.MM.YYYY v HH:MM"\n• "Co mám dnes?"';
+}
+
+// ── POMODORO ──────────────────────────────────────────────────
+const POM_FOCUS=25*60, POM_BREAK=5*60;
+let pomState='idle'; // idle | running | paused | break
+let pomEnd=0, pomRemain=POM_FOCUS, pomInterval=null;
+let pomSessions=0, pomLinkedTask=null;
+
+function pomFmt(sec){const m=Math.floor(sec/60),s=sec%60;return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}
+function pomSetDisplay(sec,type){
+  const t=document.getElementById('pomTime');
+  const tp=document.getElementById('pomType');
+  if(t)t.textContent=pomFmt(sec);
+  if(tp)tp.textContent=type==='break'?'PŘESTÁVKA':'FOCUS';
+}
+function pomPopulateTasks(){
+  const sel=document.getElementById('pomTaskSel');
+  if(!sel)return;
+  const td=today();
+  let opts='<option value="">— bez úkolu —</option>';
+  S.businesses.forEach(b=>{
+    (b.dailyTasks||[]).filter(t=>t.date===td&&!t.done).forEach(t=>{
+      const selected=pomLinkedTask&&pomLinkedTask.id===t.id?'selected':'';
+      opts+='<option value="biz_'+b.id+'_'+t.id+'" '+selected+'>'+esc(b.name)+': '+esc(t.text)+'</option>';
+    });
+  });
+  (S.global.dailyTasks||[]).filter(t=>t.date===td&&!t.done).forEach(t=>{
+    const selected=pomLinkedTask&&pomLinkedTask.id===t.id?'selected':'';
+    opts+='<option value="global_'+t.id+'" '+selected+'>Osobní: '+esc(t.text)+'</option>';
+  });
+  sel.innerHTML=opts;
+}
+function pomPickTask(){
+  const v=document.getElementById('pomTaskSel').value;
+  const row=document.getElementById('pomTaskRow');
+  if(!v){pomLinkedTask=null;if(row)row.textContent='';return}
+  const td=today();
+  if(v.startsWith('biz_')){
+    const parts=v.slice(4).split('_');const bid=parts[0];const tid=parts.slice(1).join('_');
+    const b=S.businesses.find(x=>x.id===bid);
+    const t=(b?.dailyTasks||[]).find(x=>x.id===tid);
+    if(t){pomLinkedTask={id:t.id,text:t.text,bizId:bid};if(row)row.textContent='📌 '+t.text}
+  }else{
+    const tid=v.slice(7);
+    const t=(S.global.dailyTasks||[]).find(x=>x.id===tid);
+    if(t){pomLinkedTask={id:t.id,text:t.text,bizId:null};if(row)row.textContent='📌 '+t.text}
+  }
+}
+function pomToggle(){
+  const panel=document.getElementById('pomPanel');
+  panel.classList.toggle('hidden');
+  if(!panel.classList.contains('hidden'))pomPopulateTasks();
+}
+function pomStart(){
+  if(pomState==='idle'||pomState==='paused'){
+    if(pomState==='idle'){pomRemain=POM_FOCUS;pomSetDisplay(pomRemain,'focus')}
+    pomEnd=Date.now()+pomRemain*1000;
+    pomState='running';
+    document.getElementById('pomStartBtn').style.display='none';
+    document.getElementById('pomPauseBtn').style.display='';
+    document.getElementById('pomFab').classList.add('pom-on');
+    clearInterval(pomInterval);
+    pomInterval=setInterval(pomTick,500);
+  }
+}
+function pomPause(){
+  if(pomState!=='running')return;
+  clearInterval(pomInterval);pomInterval=null;
+  pomRemain=Math.max(0,Math.round((pomEnd-Date.now())/1000));
+  pomState='paused';
+  document.getElementById('pomStartBtn').style.display='';
+  document.getElementById('pomPauseBtn').style.display='none';
+  document.getElementById('pomFab').classList.remove('pom-on');
+  pomSetDisplay(pomRemain,pomState==='break'?'break':'focus');
+}
+function pomStop(){
+  clearInterval(pomInterval);pomInterval=null;
+  pomState='idle';pomRemain=POM_FOCUS;
+  document.getElementById('pomFab').classList.remove('pom-on');
+  const sb=document.getElementById('pomStartBtn');const pb=document.getElementById('pomPauseBtn');
+  if(sb)sb.style.display='';if(pb)pb.style.display='none';
+  pomSetDisplay(POM_FOCUS,'focus');
+  const tp=document.getElementById('pomType');if(tp)tp.textContent='FOCUS';
+}
+function pomTick(){
+  const rem=Math.max(0,Math.round((pomEnd-Date.now())/1000));
+  pomSetDisplay(rem,pomState==='break'?'break':'focus');
+  if(rem<=0){
+    clearInterval(pomInterval);pomInterval=null;
+    if(pomState==='running'){
+      pomSessions++;
+      const cnt=document.getElementById('pomCount');if(cnt)cnt.textContent=pomSessions;
+      if(pomLinkedTask)pomMarkLinkedDone();
+      // start break
+      pomState='break';pomRemain=POM_BREAK;
+      pomEnd=Date.now()+POM_BREAK*1000;
+      const tp=document.getElementById('pomType');if(tp)tp.textContent='PŘESTÁVKA';
+      pomInterval=setInterval(pomTick,500);
+      try{new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA').play()}catch(e){}
+    }else if(pomState==='break'){
+      pomState='idle';pomRemain=POM_FOCUS;
+      document.getElementById('pomFab').classList.remove('pom-on');
+      const sb=document.getElementById('pomStartBtn');const pb=document.getElementById('pomPauseBtn');
+      if(sb)sb.style.display='';if(pb)pb.style.display='none';
+      pomSetDisplay(POM_FOCUS,'focus');
+    }
+  }
+}
+function pomMarkLinkedDone(){
+  if(!pomLinkedTask)return;
+  if(pomLinkedTask.bizId){
+    const b=S.businesses.find(x=>x.id===pomLinkedTask.bizId);
+    if(b){const t=(b.dailyTasks||[]).find(x=>x.id===pomLinkedTask.id);if(t)t.done=true}
+  }else{
+    const t=(S.global.dailyTasks||[]).find(x=>x.id===pomLinkedTask.id);if(t)t.done=true;
+  }
+  save();
+  pomLinkedTask=null;
+  const row=document.getElementById('pomTaskRow');if(row)row.textContent='✅ Úkol splněn!';
+  pomPopulateTasks();
+}
+
+// link pomodoro from task click
+function pomStartForTask(taskId,bizId,taskText){
+  pomLinkedTask={id:taskId,text:taskText,bizId:bizId||null};
+  pomRemain=POM_FOCUS;pomStop();
+  const panel=document.getElementById('pomPanel');
+  if(panel.classList.contains('hidden'))panel.classList.remove('hidden');
+  pomPopulateTasks();
+  const row=document.getElementById('pomTaskRow');if(row)row.textContent='📌 '+taskText;
+  pomStart();
+}
+
+// ── LOCK SCREEN ───────────────────────────────────────────────
+const APP_PASSWORD='Vorle2026'; // ← ZDE ZMĚŇTE HESLO
+const LOCK_KEY='dash_auth';
+function lockCheck(){
+  if(sessionStorage.getItem(LOCK_KEY)==='1'){
+    document.getElementById('lockOverlay').style.display='none';
+  }else{
+    setTimeout(()=>document.getElementById('lockInput').focus(),120);
+  }
+}
+async function lockTry(){
+  const val=document.getElementById('lockInput').value;
+  const err=document.getElementById('lockErr');
+  if(val===APP_PASSWORD){
+    sessionStorage.setItem(LOCK_KEY,'1');
+    const ov=document.getElementById('lockOverlay');
+    ov.classList.add('unlocking');
+    setTimeout(()=>ov.style.display='none',320);
+  }else{
+    err.textContent='Špatné heslo. Zkus znovu.';
+    document.getElementById('lockInput').value='';
+    document.getElementById('lockInput').focus();
+    setTimeout(()=>err.textContent='',2500);
+  }
+}
+lockCheck();
+
+// ── PWA SETUP ─────────────────────────────────────────────────
+(function(){
+  // Generate app icon via canvas
+  try{
+    const c=document.createElement('canvas');c.width=180;c.height=180;
+    const ctx=c.getContext('2d');
+    const g=ctx.createLinearGradient(0,0,180,180);
+    g.addColorStop(0,'#7c3aed');g.addColorStop(1,'#4f46e5');
+    ctx.fillStyle=g;
+    ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(0,0,180,180,36);
+    else ctx.rect(0,0,180,180);
+    ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.1)';
+    ctx.beginPath();ctx.ellipse(90,30,80,50,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.font='bold 64px Inter,system-ui,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('BD',90,96);
+    const iconDataUrl=c.toDataURL('image/png');
+    document.getElementById('pwaIcon').href=iconDataUrl;
+    // Inline manifest
+    const manifest={
+      name:'Business Dashboard',short_name:'Dashboard',
+      start_url:location.pathname||'./',
+      display:'standalone',orientation:'portrait',
+      background_color:'#07090f',theme_color:'#7c3aed',
+      icons:[{src:iconDataUrl,sizes:'180x180',type:'image/png'}]
+    };
+    const mBlob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+    document.getElementById('pwaManifest').href=URL.createObjectURL(mBlob);
+  }catch(e){}
+  // Register service worker for offline support
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    });
+  }
+})();
+</script>
+<!-- ── POMODORO WIDGET ── -->
+<button class="pom-fab" id="pomFab" onclick="pomToggle()" title="Pomodoro timer">⏱️</button>
+<div class="pom-panel hidden" id="pomPanel">
+  <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">⏱️ Pomodoro</div>
+  <div class="pom-time" id="pomTime">25:00</div>
+  <div class="pom-type" id="pomType">FOCUS</div>
+  <div id="pomTaskRow" style="font-size:12px;color:var(--muted);margin-bottom:14px;min-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+  <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px">
+    <button class="btn btn-primary btn-sm" id="pomStartBtn" onclick="pomStart()" style="flex:1">▶ Start</button>
+    <button class="btn btn-sm" id="pomPauseBtn" onclick="pomPause()" style="flex:1;display:none">⏸ Pauza</button>
+    <button class="btn btn-sm" onclick="pomStop()" style="background:var(--surface3);color:var(--muted)">■</button>
+  </div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:8px">🍅 Dnes: <span id="pomCount" style="color:var(--text);font-weight:700">0</span></div>
+  <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
+    <div style="font-size:11px;color:var(--muted2);margin-bottom:6px">Propojit s úkolem:</div>
+    <select id="pomTaskSel" style="width:100%;background:var(--surface3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;font-size:12px;font-family:inherit;cursor:pointer" onchange="pomPickTask()">
+      <option value="">— bez úkolu —</option>
+    </select>
+  </div>
+</div>
+<button class="chat-fab" onclick="chatToggle()" title="Chat asistent">💬</button>
+<div class="chat-panel hidden" id="chatPanel">
+  <div class="chat-hdr">
+    <span>🤖</span><span>Asistent</span>
+    <button onclick="chatToggle()" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1">×</button>
+  </div>
+  <div class="chat-msgs" id="chatMsgs">
+    <div class="chat-msg bot">Ahoj! Ovládej dashboard textem. Zkus:<br>• "Přidej schůzku 'Jednání' 15.5.2026 v 10:00"<br>• "Přidej příjem 'Faktura' 50000 do businessu 'Calling'"<br>• "Přidej výdaj 'Nájem' 15000"<br>• "Přidej úkol 'Zavolat' na dnes"<br>• "Co mám dnes?" · "help"</div>
+  </div>
+  <div class="chat-input-row">
+    <input id="chatInput" placeholder="Napiš příkaz..." onkeydown="if(event.key==='Enter')chatSend()">
+    <button class="chat-send" onclick="chatSend()">↑</button>
+  </div>
+</div>
+</body>
+</html>

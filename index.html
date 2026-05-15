@@ -674,7 +674,7 @@ function load(){try{const d=JSON.parse(localStorage.getItem(KEY))||{};if(!d.busi
 function save(skipPush){S._ts=Date.now();localStorage.setItem(KEY,JSON.stringify(S));if(!skipPush&&typeof fbPush==='function')fbPush();}
 function _lsave(){localStorage.setItem(KEY,JSON.stringify(S));} // init-only save — bez _ts, bez push
 let S=load(),activeBiz=null,activeTab='overview';
-let calYear=new Date().getFullYear(),calMonth=new Date().getMonth(),calSelDay=null,globalView=false,welcomeView=true,statsView=false,visionView=false,mindsetView=false,journalView=false,reviewView=false,metaAdsView=false;
+let calYear=new Date().getFullYear(),calMonth=new Date().getMonth(),calSelDay=null,globalView=false,welcomeView=true,statsView=false,visionView=false,mindsetView=false,journalView=false,reviewView=false,metaAdsView=false,ukolyView=false;
 let _maPeriod='month';
 let _wTimer=null;
 function getBiz(id){return S.businesses.find(b=>b.id===id)}
@@ -696,6 +696,7 @@ const _SVG={
   global:'<path d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/>',
   biz:'<path d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/>',
   ads:'<path d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z"/>',
+  tasks:'<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>',
   edit:'<path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/>',
   trash:'<path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>'
 };
@@ -727,13 +728,17 @@ function renderSidebar(){
       ${_ni('linear-gradient(135deg,#eab308,#f59e0b)',_SVG.review,'rgba(234,179,8,.35)')}
       <span class="biz-name" style="${reviewView?'color:var(--text);font-weight:600':''}">Týdenní review</span>
     </div>
+    <div class="personal-item${ukolyView?' active':''}" onclick="selUkoly()">
+      ${_ni('linear-gradient(135deg,#22c55e,#16a34a)',_SVG.tasks,'rgba(34,197,94,.35)')}
+      <span class="biz-name" style="${ukolyView?'color:var(--text);font-weight:600':''}">Úkoly</span>
+    </div>
     <div class="personal-item${metaAdsView?' active':''}" onclick="selMetaAds()">
       ${_ni('linear-gradient(135deg,#1877f2,#b44fe8)',_SVG.ads,'rgba(24,119,242,.35)')}
       <span class="biz-name" style="${metaAdsView?'color:var(--text);font-weight:600':''}">Meta Ads</span>
     </div>
-    <div class="personal-item${(!welcomeView&&!statsView&&!visionView&&!mindsetView&&!journalView&&!reviewView&&!metaAdsView&&globalView)?' active':''}" onclick="selGlobal()">
+    <div class="personal-item${(!welcomeView&&!statsView&&!visionView&&!mindsetView&&!journalView&&!reviewView&&!metaAdsView&&!ukolyView&&globalView)?' active':''}" onclick="selGlobal()">
       ${_ni('linear-gradient(135deg,#6366f1,#4f46e5)',_SVG.global,'rgba(99,102,241,.35)')}
-      <span class="biz-name" style="${(!welcomeView&&!statsView&&!visionView&&!mindsetView&&!journalView&&!reviewView&&!metaAdsView&&globalView)?'color:var(--text);font-weight:600':''}">Osobní přehled</span>
+      <span class="biz-name" style="${(!welcomeView&&!statsView&&!visionView&&!mindsetView&&!journalView&&!reviewView&&!metaAdsView&&!ukolyView&&globalView)?'color:var(--text);font-weight:600':''}">Osobní přehled</span>
     </div>
   </div>
   <div class="sidebar-sep">Businessy</div>`;
@@ -751,7 +756,7 @@ function renderSidebar(){
   el.innerHTML=personal+bizHTML;
 }
 
-function _resetViews(){welcomeView=false;statsView=false;visionView=false;mindsetView=false;journalView=false;reviewView=false;globalView=false;metaAdsView=false}
+function _resetViews(){welcomeView=false;statsView=false;visionView=false;mindsetView=false;journalView=false;reviewView=false;globalView=false;metaAdsView=false;ukolyView=false}
 function renderAll(){
   renderSidebar();
   if(welcomeView)renderWelcome();
@@ -762,6 +767,7 @@ function renderAll(){
   else if(reviewView)renderReview();
   else if(globalView)renderGlobal();
   else if(metaAdsView)renderMetaAds();
+  else if(ukolyView)renderUkoly();
   else if(activeBiz)renderMain();
   else renderWelcome();
 }
@@ -774,6 +780,7 @@ function selMindset(){_resetViews();mindsetView=true;activeBiz=null;renderSideba
 function selJournal(){_resetViews();journalView=true;activeBiz=null;renderSidebar();renderJournal()}
 function selReview(){_resetViews();reviewView=true;activeBiz=null;renderSidebar();renderReview()}
 function selMetaAds(){_resetViews();metaAdsView=true;activeBiz=null;renderSidebar();renderMetaAds()}
+function selUkoly(){_resetViews();ukolyView=true;activeBiz=null;renderSidebar();renderUkoly()}
 function _src(){return globalView?S.global:getBiz(activeBiz)}
 
 // ── AI ASISTENT ───────────────────────────────────────────────
@@ -1011,6 +1018,7 @@ function renderMain(){
   if(mindsetView){renderMindset();return}
   if(journalView){renderJournal();return}
   if(reviewView){renderReview();return}
+  if(ukolyView){renderUkoly();return}
   const el=document.getElementById('mainContent');
   if(!activeBiz){el.innerHTML='<div class="welcome"><div style="font-size:48px">📊</div><h2>Vítej v Business Dashboardu</h2><p>Přidej svůj první business tlačítkem nahoře vpravo.</p></div>';return}
   const b=getBiz(activeBiz);if(!b)return;
@@ -2886,6 +2894,92 @@ function pomStartForTask(taskId,bizId,taskText){
   pomStart();
 }
 
+// ── ÚKOLY ─────────────────────────────────────────────────────
+function initUkoly(){if(!S.ukoly)S.ukoly={tasks:[]};}
+
+function renderUkoly(){
+  initUkoly();
+  const el=document.getElementById('mainContent');
+  const tasks=[...S.ukoly.tasks].sort((a,b)=>a.date.localeCompare(b.date)||a.createdAt?.localeCompare(b.createdAt||'')||0);
+  const pending=tasks.filter(t=>!t.done);
+  const done=tasks.filter(t=>t.done).sort((a,b)=>(b.doneAt||'').localeCompare(a.doneAt||''));
+
+  const makeRow=t=>`<tr>
+    <td style="width:130px;color:var(--muted);white-space:nowrap;font-size:13px">${t.date}</td>
+    <td>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" ${t.done?'checked':''} onchange="toggleUkol('${t.id}',this.checked)" style="accent-color:#22c55e;width:16px;height:16px;cursor:pointer;flex-shrink:0">
+        <span style="font-size:13.5px;${t.done?'text-decoration:line-through;color:var(--muted)':''}">${esc(t.text)}</span>
+      </div>
+    </td>
+    <td style="text-align:right;white-space:nowrap"><button class="delbtn" onclick="delUkol('${t.id}')">✕</button></td>
+  </tr>`;
+
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:26px;padding-bottom:22px;border-bottom:1px solid var(--border)">
+      <div style="width:44px;height:44px;border-radius:12px;background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">✅</div>
+      <div style="flex:1">
+        <h1 style="font-size:21px;font-weight:800;letter-spacing:-.5px">Úkoly</h1>
+        <div style="font-size:13px;color:var(--muted);margin-top:2px">${pending.length} zbývá &nbsp;·&nbsp; ${done.length} hotovo</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openAddUkol()">+ Přidat úkol</button>
+    </div>
+
+    <div class="table-wrap" style="margin-bottom:24px">
+      <div class="table-hdr"><h3>📋 Plánováno (${pending.length})</h3></div>
+      ${pending.length
+        ?`<table><thead><tr><th>Datum</th><th>Úkol</th><th></th></tr></thead><tbody>${pending.map(makeRow).join('')}</tbody></table>`
+        :`<div class="empty" style="padding:40px"><div class="ico">🎉</div><p>Všechno hotovo! Přidej nový úkol.</p><button class="btn btn-primary" onclick="openAddUkol()">+ Přidat úkol</button></div>`}
+    </div>
+
+    ${done.length?`
+    <div class="table-wrap">
+      <div class="table-hdr">
+        <h3 style="color:var(--muted)">✅ HOTOVO (${done.length})</h3>
+        <button class="btn btn-ghost btn-sm" style="color:var(--red);font-size:12px;border-color:var(--red-dim)" onclick="clearDoneUkoly()">🗑 Smazat hotové</button>
+      </div>
+      <table><thead><tr><th>Datum</th><th>Úkol</th><th></th></tr></thead><tbody>${done.map(makeRow).join('')}</tbody></table>
+    </div>`:''}
+  `;
+}
+
+function openAddUkol(){
+  showModal(`<div class="modal-title">Nový úkol</div>
+    <div class="fg"><label>Úkol *</label><input class="fc" id="uText" placeholder="Co chceš udělat?" autofocus></div>
+    <div class="fg"><label>Datum</label><input class="fc" id="uDate" type="date" value="${today()}"></div>
+    <div class="m-acts"><button class="btn btn-ghost" onclick="closeModal()">Zrušit</button><button class="btn btn-primary" onclick="saveUkol()">Přidat</button></div>`);
+}
+
+function saveUkol(){
+  const text=document.getElementById('uText').value.trim();
+  if(!text){alert('Zadej text úkolu.');return}
+  initUkoly();
+  S.ukoly.tasks.push({id:uid(),text,date:document.getElementById('uDate').value||today(),done:false,doneAt:null,createdAt:new Date().toISOString()});
+  save();closeModal();renderUkoly();
+}
+
+function toggleUkol(id,done){
+  initUkoly();
+  const t=S.ukoly.tasks.find(x=>x.id===id);
+  if(!t)return;
+  t.done=done;
+  t.doneAt=done?new Date().toISOString():null;
+  save();renderUkoly();
+}
+
+function delUkol(id){
+  initUkoly();
+  S.ukoly.tasks=S.ukoly.tasks.filter(x=>x.id!==id);
+  save();renderUkoly();
+}
+
+function clearDoneUkoly(){
+  if(!confirm('Smazat všechny hotové úkoly?'))return;
+  initUkoly();
+  S.ukoly.tasks=S.ukoly.tasks.filter(x=>!x.done);
+  save();renderUkoly();
+}
+
 // ── FIREBASE SYNC (REST API — bez SDK) ────────────────────────
 const FB_URL='https://dashboard-81afc-default-rtdb.europe-west1.firebasedatabase.app/biz_vorel_2026.json';
 let _fbPushing=false,_fbPollTimer=null;
@@ -3466,70 +3560,89 @@ function _playSound(type){
     const ac=_getAC(); if(!ac)return;
     const t=ac.currentTime;
     if(type==='unlock'){
-      // Krátký sci-fi rising beep — ikona odemčení
-      const o=ac.createOscillator(),g=ac.createGain();
-      o.connect(g);g.connect(ac.destination);
-      o.type='sine';
-      o.frequency.setValueAtTime(520,t);
-      o.frequency.exponentialRampToValueAtTime(1100,t+.18);
-      g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(.28,t+.02);
-      g.gain.exponentialRampToValueAtTime(.0001,t+.22);
-      o.start(t);o.stop(t+.23);
+      // Hluboký rezonující zvon — dvě mírně rozladěné sinusy vytváří tajemný beat
+      [220,220.6].forEach(freq=>{
+        const o=ac.createOscillator(),g=ac.createGain();
+        o.type='sine';o.frequency.value=freq;
+        o.connect(g);g.connect(ac.destination);
+        g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.14,t+.06);
+        g.gain.exponentialRampToValueAtTime(.0001,t+1.8);
+        o.start(t);o.stop(t+2);
+      });
+      // Jemný overtón
+      const oh=ac.createOscillator(),gh=ac.createGain();
+      oh.type='sine';oh.frequency.value=440;
+      oh.connect(gh);gh.connect(ac.destination);
+      gh.gain.setValueAtTime(0,t);gh.gain.linearRampToValueAtTime(.04,t+.04);
+      gh.gain.exponentialRampToValueAtTime(.0001,t+.9);
+      oh.start(t);oh.stop(t+1);
     }
     if(type==='scan'){
-      // Elektronický sweep — scan linie
-      const o=ac.createOscillator(),f=ac.createBiquadFilter(),g=ac.createGain();
-      o.connect(f);f.connect(g);g.connect(ac.destination);
-      o.type='sawtooth';f.type='bandpass';f.Q.value=2.5;
-      o.frequency.setValueAtTime(280,t);
-      o.frequency.exponentialRampToValueAtTime(2800,t+.52);
-      f.frequency.setValueAtTime(280,t);
-      f.frequency.exponentialRampToValueAtTime(2800,t+.52);
-      g.gain.setValueAtTime(.13,t);g.gain.exponentialRampToValueAtTime(.0001,t+.55);
-      o.start(t);o.stop(t+.56);
+      // Theremin-like eerie sweep s LFO chvěním
+      const o=ac.createOscillator(),lfo=ac.createOscillator(),lfoG=ac.createGain(),g=ac.createGain();
+      lfo.frequency.value=4;lfoG.gain.value=6;
+      lfo.connect(lfoG);lfoG.connect(o.frequency);
+      o.type='sine';
+      o.frequency.setValueAtTime(90,t);
+      o.frequency.exponentialRampToValueAtTime(380,t+1.4);
+      o.connect(g);g.connect(ac.destination);
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.1,t+.25);
+      g.gain.setValueAtTime(.1,t+1.1);g.gain.exponentialRampToValueAtTime(.0001,t+1.5);
+      lfo.start(t);lfo.stop(t+1.6);o.start(t);o.stop(t+1.6);
     }
     if(type==='granted'){
-      // C dur arpeggio — PŘÍSTUP POVOLEN
-      [[523.25,0],[659.25,.09],[783.99,.18],[1046.5,.27]].forEach(([freq,d])=>{
+      // G minor pentatonic arpeggio — vzestupný, tajemný, dlouhý dozvuk
+      [[196,0],[233.08,.22],[293.66,.44],[349.23,.66],[392,.88]].forEach(([freq,d])=>{
         const o=ac.createOscillator(),g=ac.createGain();
-        o.connect(g);g.connect(ac.destination);
         o.type='sine';o.frequency.value=freq;
-        g.gain.setValueAtTime(.0001,t+d);g.gain.linearRampToValueAtTime(.2,t+d+.04);
-        g.gain.exponentialRampToValueAtTime(.0001,t+d+.48);
-        o.start(t+d);o.stop(t+d+.5);
+        o.connect(g);g.connect(ac.destination);
+        g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(.13,t+d+.06);
+        g.gain.exponentialRampToValueAtTime(.0001,t+d+1.4);
+        o.start(t+d);o.stop(t+d+1.5);
+        // Tichý oktávový overtón
+        const o2=ac.createOscillator(),g2=ac.createGain();
+        o2.type='sine';o2.frequency.value=freq*2;
+        o2.connect(g2);g2.connect(ac.destination);
+        g2.gain.setValueAtTime(0,t+d);g2.gain.linearRampToValueAtTime(.03,t+d+.05);
+        g2.gain.exponentialRampToValueAtTime(.0001,t+d+.7);
+        o2.start(t+d);o2.stop(t+d+.8);
       });
     }
     if(type==='whoosh'){
-      // Implode whoosh — karta se zhroutí
-      const dur=.42,buf=ac.createBuffer(1,Math.floor(ac.sampleRate*dur),ac.sampleRate);
+      // Temný implosivní šum klesající do hlubiny
+      const dur=.9,buf=ac.createBuffer(1,Math.floor(ac.sampleRate*dur),ac.sampleRate);
       const data=buf.getChannelData(0);
-      for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*Math.pow(1-i/data.length,1.8);
+      for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*Math.pow(1-i/data.length,.5);
       const src=ac.createBufferSource(),flt=ac.createBiquadFilter(),g=ac.createGain();
-      src.buffer=buf;flt.type='bandpass';flt.Q.value=1.5;
-      flt.frequency.setValueAtTime(3500,t);flt.frequency.exponentialRampToValueAtTime(120,t+dur);
-      g.gain.setValueAtTime(.4,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+      src.buffer=buf;flt.type='lowpass';flt.Q.value=3;
+      flt.frequency.setValueAtTime(600,t);flt.frequency.exponentialRampToValueAtTime(35,t+dur);
+      g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
       src.connect(flt);flt.connect(g);g.connect(ac.destination);src.start(t);
+      // Sub-bass drop
+      const os=ac.createOscillator(),gs=ac.createGain();
+      os.type='sine';os.frequency.setValueAtTime(70,t);os.frequency.exponentialRampToValueAtTime(20,t+dur);
+      gs.gain.setValueAtTime(.18,t);gs.gain.exponentialRampToValueAtTime(.0001,t+dur);
+      os.connect(gs);gs.connect(ac.destination);os.start(t);os.stop(t+dur+.1);
     }
     if(type==='flash'){
-      // Ostrý impact boom — bílý záblesk
+      // Hluboký sub-bass thud — temnota
       const o=ac.createOscillator(),g=ac.createGain();
-      o.connect(g);g.connect(ac.destination);
       o.type='sine';
-      o.frequency.setValueAtTime(900,t);o.frequency.exponentialRampToValueAtTime(55,t+.15);
-      g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(.5,t+.008);
-      g.gain.exponentialRampToValueAtTime(.0001,t+.2);
-      o.start(t);o.stop(t+.22);
+      o.frequency.setValueAtTime(55,t);o.frequency.exponentialRampToValueAtTime(18,t+.5);
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.55,t+.006);
+      g.gain.exponentialRampToValueAtTime(.0001,t+.6);
+      o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.7);
     }
     if(type==='error'){
-      // Dvojitý nízký bzukot — špatné heslo
-      [0,.2].forEach(d=>{
-        const o=ac.createOscillator(),g=ac.createGain();
-        o.connect(g);g.connect(ac.destination);
-        o.type='square';
-        o.frequency.setValueAtTime(170,t+d);o.frequency.exponentialRampToValueAtTime(110,t+d+.14);
-        g.gain.setValueAtTime(.0001,t+d);g.gain.linearRampToValueAtTime(.15,t+d+.01);
-        g.gain.exponentialRampToValueAtTime(.0001,t+d+.16);
-        o.start(t+d);o.stop(t+d+.17);
+      // Dissonantní tritón — znepokojivý, záhadný
+      [0,.28].forEach(d=>{
+        const o1=ac.createOscillator(),o2=ac.createOscillator(),g=ac.createGain();
+        o1.type='sine';o1.frequency.value=140;
+        o2.type='sine';o2.frequency.value=198; // tritón — nejtemnější interval
+        o1.connect(g);o2.connect(g);g.connect(ac.destination);
+        g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(.1,t+d+.025);
+        g.gain.exponentialRampToValueAtTime(.0001,t+d+.28);
+        o1.start(t+d);o1.stop(t+d+.3);o2.start(t+d);o2.stop(t+d+.3);
       });
     }
   }catch(e){}
